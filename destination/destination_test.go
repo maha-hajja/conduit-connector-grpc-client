@@ -12,14 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package destination
 
 import (
-	sdk "github.com/conduitio/conduit-connector-sdk"
-
-	grpc "github.com/conduitio-labs/conduit-connector-grpc-client"
+	"context"
+	"testing"
 )
 
-func main() {
-	sdk.Serve(grpc.Connector)
+func TestTeardown_NoOpen(t *testing.T) {
+	con := NewDestination()
+	err := con.Teardown(context.Background())
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
 }
+
+// todo

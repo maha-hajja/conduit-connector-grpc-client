@@ -1,4 +1,4 @@
-module github.com/conduitio/conduit-connector-connectorname
+module github.com/conduitio-labs/conduit-connector-grpc-client
 
 go 1.20
 
