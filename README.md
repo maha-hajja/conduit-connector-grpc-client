@@ -1,6 +1,5 @@
 # Conduit Connector for gRPC Client
-[Conduit](https://conduit.io) for gRPC Client.
-The gRPC Client connector is one of Conduit plugins. It provides a destination gRPC Client connector.
+The gRPC Client connector is one of [Conduit](https://conduit.io) plugins. It provides a destination gRPC Client connector.
 
 ## How to build?
 Run `make build` to build the connector.
