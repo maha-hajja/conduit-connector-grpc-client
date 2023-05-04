@@ -17,6 +17,7 @@ package destination
 //go:generate paramgen -output=paramgen_dest.go Config
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -37,7 +38,7 @@ type Destination struct {
 }
 
 type Config struct {
-	// url to gRPC
+	// url to gRPC server
 	URL string `json:"url" validate:"required"`
 }
 
@@ -79,15 +80,15 @@ func (d *Destination) Open(ctx context.Context) error {
 }
 
 func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
-	for i, r := range records {
+	for _, r := range records {
 		record, err := toproto.Record(r)
 		if err != nil {
-			return i, err
+			return 0, err
 		}
 		// todo: backoff retries until connection is reestablished and create a new stream
 		err = d.stream.Send(record)
 		if err == io.EOF {
-			return i, fmt.Errorf("stream was closed: %w", err)
+			return 0, fmt.Errorf("stream was closed: %w", err)
 		}
 		if err != nil {
 			return 0, fmt.Errorf("failed to send record: %w", err)
@@ -103,20 +104,23 @@ func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, err
 		if err != nil {
 			return i, fmt.Errorf("failed to receive ack: %w", err)
 		}
+		if !bytes.Equal(ack.AckPosition, records[i].Position) {
+			return i, fmt.Errorf("unexpected ack, got: %v, want: %v", ack.AckPosition, records[i].Position)
+		}
 		sdk.Logger(ctx).Trace().Bytes("position", ack.AckPosition).Msg("ack received")
 	}
 	return len(records), nil
 }
 
 func (d *Destination) Teardown(ctx context.Context) error {
-	if d.conn != nil {
-		err := d.conn.Close()
+	if d.stream != nil {
+		err := d.stream.CloseSend()
 		if err != nil {
 			return err
 		}
 	}
-	if d.stream != nil {
-		err := d.stream.CloseSend()
+	if d.conn != nil {
+		err := d.conn.Close()
 		if err != nil {
 			return err
 		}

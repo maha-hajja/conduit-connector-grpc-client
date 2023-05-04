@@ -1,5 +1,6 @@
-# Conduit Connector for <resource>
-[Conduit](https://conduit.io) for <resource>.
+# Conduit Connector for gRPC Client
+[Conduit](https://conduit.io) for gRPC Client.
+The gRPC Client connector is one of Conduit plugins. It provides a destination gRPC Client connector.
 
 ## How to build?
 Run `make build` to build the connector.
@@ -9,28 +10,16 @@ Run `make test` to run all the unit tests. Run `make test-integration` to run th
 
 The Docker compose file at `test/docker-compose.yml` can be used to run the required resource locally.
 
-## Source
-A source connector pulls data from an external resource and pushes it to downstream resources via Conduit.
-
-### Configuration
-
-| name                  | description                           | required | default value |
-|-----------------------|---------------------------------------|----------|---------------|
-| `source_config_param` | Description of `source_config_param`. | true     | 1000          |
-
 ## Destination
-A destination connector pushes data from upstream resources to an external resource via Conduit.
+A client gRPC destination connector initiates connection with a gRPC server using the `url` provided as
+a parameter. It creates a bidirectional stream with the server and uses the stream to write records to the
+server, then waits for acknowledgments to be received from the server through the same stream.
 
 ### Configuration
 
-| name                       | description                                | required | default value |
-|----------------------------|--------------------------------------------|----------|---------------|
-| `destination_config_param` | Description of `destination_config_param`. | true     | 1000          |
-
-## Known Issues & Limitations
-* Known issue A
-* Limitation A
+| name                 | description                                | required | default value |
+|----------------------|--------------------------------------------|----------|---------------|
+| `url`                | url to gRPC server.                        | true     |               |
 
 ## Planned work
-- [ ] Item A
-- [ ] Item B
+- Add a source for gRPC client. 

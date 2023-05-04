@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package grpc
+package grpcclient
 
 import (
 	sdk "github.com/conduitio/conduit-connector-sdk"
@@ -28,8 +28,9 @@ func Specification() sdk.Specification {
 		Name:    "grpc-client",
 		Summary: "A gRPC Source & Destination Clients.",
 		// todo: first version will only include the destination.
-		Description: "Conduit gRPC source and destination clients, initiates the connection with a gRPC server connector (github.com/conduitio-labs/conduit-connector-grpc-server).",
-		Version:     version,
-		Author:      "Meroxa, Inc.",
+		Description: "Conduit gRPC source and destination clients, initiates the connection with a gRPC server" +
+			" connector (github.com/conduitio-labs/conduit-connector-grpc-server).",
+		Version: version,
+		Author:  "Meroxa, Inc.",
 	}
 }
