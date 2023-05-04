@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package destination
+package grpcclient
 
 //go:generate paramgen -output=paramgen_dest.go Config
 
@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/conduitio-labs/conduit-connector-grpc-client/destination/toproto"
 	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
+	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc"
 )

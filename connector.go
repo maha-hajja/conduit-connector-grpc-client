@@ -15,7 +15,6 @@
 package grpcclient
 
 import (
-	"github.com/conduitio-labs/conduit-connector-grpc-client/destination"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
@@ -23,5 +22,5 @@ import (
 var Connector = sdk.Connector{
 	NewSpecification: Specification,
 	NewSource:        nil,
-	NewDestination:   destination.NewDestination,
+	NewDestination:   NewDestination,
 }
