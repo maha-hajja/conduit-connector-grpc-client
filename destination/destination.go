@@ -34,7 +34,6 @@ type Destination struct {
 	config Config
 	conn   *grpc.ClientConn
 	stream pb.StreamService_StreamClient
-	client pb.StreamServiceClient
 }
 
 type Config struct {
@@ -70,9 +69,9 @@ func (d *Destination) Open(ctx context.Context) error {
 	d.conn = conn
 
 	// create the client
-	d.client = pb.NewStreamServiceClient(conn)
+	client := pb.NewStreamServiceClient(conn)
 	// call the Stream method to create a bidirectional streaming RPC stream
-	d.stream, err = d.client.Stream(ctx)
+	d.stream, err = client.Stream(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create a bidirectional stream: %w", err)
 	}
