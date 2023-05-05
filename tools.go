@@ -14,7 +14,7 @@
 
 //go:build tools
 
-package cassandra
+package grpcclient
 
 import (
 	_ "github.com/conduitio/conduit-connector-sdk/cmd/paramgen"
