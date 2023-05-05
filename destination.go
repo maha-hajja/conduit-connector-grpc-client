@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 
 	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
 	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
@@ -34,11 +35,19 @@ type Destination struct {
 	config Config
 	conn   *grpc.ClientConn
 	stream pb.StreamService_StreamClient
+
+	// for testing: always empty, unless it's a test
+	dialer func(ctx context.Context, _ string) (net.Conn, error)
 }
 
 type Config struct {
 	// url to gRPC server
 	URL string `json:"url" validate:"required"`
+}
+
+// NewDestinationWithDialer for testing purposes.
+func NewDestinationWithDialer(dialer func(ctx context.Context, _ string) (net.Conn, error)) sdk.Destination {
+	return sdk.DestinationWithMiddleware(&Destination{dialer: dialer})
 }
 
 func NewDestination() sdk.Destination {
@@ -59,7 +68,9 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 }
 
 func (d *Destination) Open(ctx context.Context) error {
-	conn, err := grpc.Dial(d.config.URL,
+	conn, err := grpc.DialContext(ctx,
+		d.config.URL,
+		grpc.WithContextDialer(d.dialer),
 		grpc.WithInsecure(), //nolint:staticcheck // todo: will use mTLS with connection
 		grpc.WithBlock(),
 	)

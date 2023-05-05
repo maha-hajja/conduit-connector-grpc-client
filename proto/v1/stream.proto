@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package proto.v1;
+package protov1;
 
 import "opencdc/v1/opencdc.proto";
 

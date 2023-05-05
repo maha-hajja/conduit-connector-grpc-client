@@ -1,13 +1,16 @@
 # Conduit Connector for gRPC Client
 The gRPC Client connector is one of [Conduit](https://conduit.io) plugins. It provides a destination gRPC Client connector.
 
+This connector should be paired with another Conduit instance or pipeline, that provides a 
+[gRPC server source](https://github.com/conduitio-labs/conduit-connector-grpc-server). Where the client will initiate
+the connection with the server, and start sending records to it.
+
+
 ## How to build?
 Run `make build` to build the connector.
 
 ## Testing
-Run `make test` to run all the unit tests. Run `make test-integration` to run the integration tests.
-
-The Docker compose file at `test/docker-compose.yml` can be used to run the required resource locally.
+Run `make test` to run all the unit tests.
 
 ## Destination
 A client gRPC destination connector initiates connection with a gRPC server using the `url` provided as

@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: v1/stream.proto
 
-package protov1
+package v1
 
 import (
 	context "context"
@@ -20,7 +20,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	StreamService_Stream_FullMethodName = "/proto.v1.StreamService/Stream"
+	StreamService_Stream_FullMethodName = "/protov1.StreamService/Stream"
 )
 
 // StreamServiceClient is the client API for StreamService service.
@@ -127,7 +127,7 @@ func (x *streamServiceStreamServer) Recv() (*v1.Record, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var StreamService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "proto.v1.StreamService",
+	ServiceName: "protov1.StreamService",
 	HandlerType: (*StreamServiceServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
