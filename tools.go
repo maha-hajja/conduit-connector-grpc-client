@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+//go:build tools
+
+package grpcclient
 
 import (
-	sdk "github.com/conduitio/conduit-connector-sdk"
-
-	grpc "github.com/conduitio-labs/conduit-connector-grpc-client"
+	_ "github.com/conduitio/conduit-connector-sdk/cmd/paramgen"
+	_ "github.com/golang/mock/mockgen"
 )
-
-func main() {
-	sdk.Serve(grpc.Connector)
-}

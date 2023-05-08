@@ -12,14 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package v1
 
-import (
-	sdk "github.com/conduitio/conduit-connector-sdk"
-
-	grpc "github.com/conduitio-labs/conduit-connector-grpc-client"
-)
-
-func main() {
-	sdk.Serve(grpc.Connector)
-}
+//go:generate mockgen -destination=mock.go -source=stream_grpc.pb.go -package=v1 -mock_names=StreamServiceServer=MockStreamServiceServer StreamServiceServer
