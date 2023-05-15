@@ -116,12 +116,12 @@ func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
 					if err != nil {
 						return err
 					}
-					// convert the record to sdk.Record to compare with expected records
-					record, err := fromproto.Record(rec)
+					// convert the sdkRec to sdk.Record to compare with expected records
+					sdkRec, err := fromproto.Record(rec)
 					if err != nil {
 						return err
 					}
-					if !bytes.Equal(record.Bytes(), expected[i].Bytes()) {
+					if !bytes.Equal(sdkRec.Bytes(), expected[i].Bytes()) {
 						return fmt.Errorf("received record doesn't match the expected record")
 					}
 					i++
