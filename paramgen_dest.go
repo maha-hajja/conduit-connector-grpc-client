@@ -9,6 +9,12 @@ import (
 
 func (Config) Parameters() map[string]sdk.Parameter {
 	return map[string]sdk.Parameter{
+		"rateLimit": {
+			Default:     "10000",
+			Description: "the bandwidth limit in bytes/second",
+			Type:        sdk.ParameterTypeInt,
+			Validations: []sdk.Validation{},
+		},
 		"url": {
 			Default:     "",
 			Description: "url to gRPC server",

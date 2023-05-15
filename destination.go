@@ -25,6 +25,8 @@ import (
 
 	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
 	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
+	"github.com/conduitio/bwlimit"
+	"github.com/conduitio/bwlimit/bwgrpc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc"
 )
@@ -43,6 +45,8 @@ type Destination struct {
 type Config struct {
 	// url to gRPC server
 	URL string `json:"url" validate:"required"`
+	// the bandwidth limit in bytes/second
+	RateLimit int `json:"rateLimit" default:"10000"`
 }
 
 // NewDestinationWithDialer for testing purposes.
@@ -73,6 +77,8 @@ func (d *Destination) Open(ctx context.Context) error {
 		grpc.WithContextDialer(d.dialer),
 		grpc.WithInsecure(), //nolint:staticcheck // todo: will use mTLS with connection
 		grpc.WithBlock(),
+		// limit the bandwidth
+		bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to dial server: %w", err)

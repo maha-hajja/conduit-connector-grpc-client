@@ -15,13 +15,16 @@
 package grpcclient
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"sync"
 	"testing"
 
+	"github.com/conduitio-labs/conduit-connector-grpc-client/fromproto"
 	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/golang/mock/gomock"
@@ -39,8 +42,6 @@ func TestTeardown_NoOpen(t *testing.T) {
 
 func TestWrite_Success(t *testing.T) {
 	is := is.New(t)
-	dest, ctx := prepareServerAndDestination(t)
-
 	records := []sdk.Record{
 		{
 			Position:  sdk.Position("foo"),
@@ -61,12 +62,13 @@ func TestWrite_Success(t *testing.T) {
 			},
 		},
 	}
+	dest, ctx := prepareServerAndDestination(t, records)
 	n, err := dest.Write(ctx, records)
 	is.NoErr(err)
 	is.Equal(n, 2)
 }
 
-func prepareServerAndDestination(t *testing.T) (sdk.Destination, context.Context) {
+func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Destination, context.Context) {
 	is := is.New(t)
 	// use in-memory connection
 	lis := bufconn.Listen(1024 * 1024)
@@ -75,12 +77,12 @@ func prepareServerAndDestination(t *testing.T) (sdk.Destination, context.Context
 	}
 
 	// prepare server
-	startTestServer(t, lis)
+	startTestServer(t, lis, expected)
 
 	// prepare destination (client)
 	ctx := context.Background()
 	dest := NewDestinationWithDialer(dialer)
-	err := dest.Configure(ctx, map[string]string{"url": "bufnet"})
+	err := dest.Configure(ctx, map[string]string{"url": "bufnet", "rateLimit": "10000"})
 	is.NoErr(err)
 	err = dest.Open(ctx)
 	is.NoErr(err)
@@ -94,7 +96,7 @@ func prepareServerAndDestination(t *testing.T) (sdk.Destination, context.Context
 	return dest, ctx
 }
 
-func startTestServer(t *testing.T, lis net.Listener) {
+func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
 	ctrl := gomock.NewController(t)
 	srv := grpc.NewServer()
 
@@ -104,18 +106,28 @@ func startTestServer(t *testing.T, lis net.Listener) {
 		Stream(gomock.Any()).
 		DoAndReturn(
 			func(stream pb.StreamService_StreamServer) error {
+				i := 0
 				for {
 					// read from the stream to simulate receiving data from the client
-					req, err := stream.Recv()
+					rec, err := stream.Recv()
 					if err == io.EOF {
 						return nil
 					}
 					if err != nil {
 						return err
 					}
+					// convert the record to sdk.Record to compare with expected records
+					record, err := fromproto.Record(rec)
+					if err != nil {
+						return err
+					}
+					if !bytes.Equal(record.Bytes(), expected[i].Bytes()) {
+						return fmt.Errorf("received record doesn't match the expected record")
+					}
+					i++
 
 					// Write to the stream to simulate sending data to the client
-					resp := &pb.Ack{AckPosition: req.Position}
+					resp := &pb.Ack{AckPosition: rec.Position}
 					if err := stream.Send(resp); err != nil {
 						return err
 					}
