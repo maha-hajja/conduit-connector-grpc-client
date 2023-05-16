@@ -116,7 +116,7 @@ func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
 					if err != nil {
 						return err
 					}
-					// convert the sdkRec to sdk.Record to compare with expected records
+					// convert the proto record to sdk.Record to compare with expected records
 					sdkRec, err := fromproto.Record(rec)
 					if err != nil {
 						return err
