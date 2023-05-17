@@ -72,25 +72,19 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 }
 
 func (d *Destination) Open(ctx context.Context) error {
-	var conn *grpc.ClientConn
-	var err error
-	if d.config.RateLimit > 0 {
-		conn, err = grpc.DialContext(ctx,
-			d.config.URL,
-			grpc.WithContextDialer(d.dialer),
-			grpc.WithInsecure(), //nolint:staticcheck // todo: will use mTLS with connection
-			grpc.WithBlock(),
-			// limit bandwidth
-			bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer),
-		)
-	} else {
-		conn, err = grpc.DialContext(ctx,
-			d.config.URL,
-			grpc.WithContextDialer(d.dialer),
-			grpc.WithInsecure(), //nolint:staticcheck // todo: will use mTLS with connection
-			grpc.WithBlock(),
-		)
+	dialOptions := []grpc.DialOption{
+		grpc.WithContextDialer(d.dialer),
+		grpc.WithInsecure(), //nolint:staticcheck // todo: will use mTLS with connection
+		grpc.WithBlock(),
 	}
+	if d.config.RateLimit > 0 {
+		dialOptions = append(dialOptions,
+			bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer))
+	}
+	conn, err := grpc.DialContext(ctx,
+		d.config.URL,
+		dialOptions...,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to dial server: %w", err)
 	}
