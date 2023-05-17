@@ -3,6 +3,8 @@ module github.com/conduitio-labs/conduit-connector-grpc-client
 go 1.20
 
 require (
+	github.com/conduitio/bwlimit v0.1.0
+	github.com/conduitio/bwlimit/bwgrpc v0.1.0
 	github.com/conduitio/conduit-connector-protocol v0.5.0
 	github.com/conduitio/conduit-connector-sdk v0.6.0
 	github.com/golang/mock v1.6.0

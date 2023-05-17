@@ -25,6 +25,8 @@ import (
 
 	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
 	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
+	"github.com/conduitio/bwlimit"
+	"github.com/conduitio/bwlimit/bwgrpc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc"
 )
@@ -43,6 +45,8 @@ type Destination struct {
 type Config struct {
 	// url to gRPC server
 	URL string `json:"url" validate:"required"`
+	// the bandwidth limit in bytes/second, use "0" to disable rate limiting.
+	RateLimit int `json:"rateLimit" default:"0" validate:"gt=-1"`
 }
 
 // NewDestinationWithDialer for testing purposes.
@@ -51,7 +55,7 @@ func NewDestinationWithDialer(dialer func(ctx context.Context, _ string) (net.Co
 }
 
 func NewDestination() sdk.Destination {
-	return sdk.DestinationWithMiddleware(&Destination{})
+	return sdk.DestinationWithMiddleware(&Destination{}, sdk.DefaultDestinationMiddleware()...)
 }
 
 func (d *Destination) Parameters() map[string]sdk.Parameter {
@@ -68,11 +72,18 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 }
 
 func (d *Destination) Open(ctx context.Context) error {
-	conn, err := grpc.DialContext(ctx,
-		d.config.URL,
+	dialOptions := []grpc.DialOption{
 		grpc.WithContextDialer(d.dialer),
 		grpc.WithInsecure(), //nolint:staticcheck // todo: will use mTLS with connection
 		grpc.WithBlock(),
+	}
+	if d.config.RateLimit > 0 {
+		dialOptions = append(dialOptions,
+			bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer))
+	}
+	conn, err := grpc.DialContext(ctx,
+		d.config.URL,
+		dialOptions...,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to dial server: %w", err)

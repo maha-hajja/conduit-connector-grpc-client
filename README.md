@@ -19,9 +19,10 @@ server, then waits for acknowledgments to be received from the server through th
 
 ### Configuration
 
-| name                 | description                                | required | default value |
-|----------------------|--------------------------------------------|----------|---------------|
-| `url`                | url to gRPC server.                        | true     |               |
+| name        | description                                                            | required | default value |
+|-------------|------------------------------------------------------------------------|----------|---------------|
+| `url`       | url to gRPC server.                                                    | true     |               |
+| `rateLimit` | the bandwidth limit in bytes/second, use "0" to disable rate limiting. | false    | 0             |
 
 ## Planned work
 - Add a source for gRPC client. 
