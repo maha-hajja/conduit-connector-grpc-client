@@ -36,7 +36,7 @@ type Destination struct {
 
 	config Config
 	conn   *grpc.ClientConn
-	stream pb.StreamService_StreamClient
+	stream pb.SourceService_StreamClient
 
 	// for testing: always empty, unless it's a test
 	dialer func(ctx context.Context, _ string) (net.Conn, error)
@@ -91,7 +91,7 @@ func (d *Destination) Open(ctx context.Context) error {
 	d.conn = conn
 
 	// create the client
-	client := pb.NewStreamServiceClient(conn)
+	client := pb.NewSourceServiceClient(conn)
 	// call the Stream method to create a bidirectional streaming RPC stream
 	d.stream, err = client.Stream(ctx)
 	if err != nil {
