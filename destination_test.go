@@ -101,11 +101,11 @@ func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
 	srv := grpc.NewServer()
 
 	// create and register simple mock server
-	mockServer := pb.NewMockStreamServiceServer(ctrl)
+	mockServer := pb.NewMockSourceServiceServer(ctrl)
 	mockServer.EXPECT().
 		Stream(gomock.Any()).
 		DoAndReturn(
-			func(stream pb.StreamService_StreamServer) error {
+			func(stream pb.SourceService_StreamServer) error {
 				i := 0
 				for {
 					// read from the stream to simulate receiving data from the client
@@ -134,7 +134,7 @@ func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
 				}
 			},
 		)
-	pb.RegisterStreamServiceServer(srv, mockServer)
+	pb.RegisterSourceServiceServer(srv, mockServer)
 
 	// start gRPC server
 	var wg sync.WaitGroup
