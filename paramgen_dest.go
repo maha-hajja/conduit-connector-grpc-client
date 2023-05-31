@@ -9,6 +9,12 @@ import (
 
 func (Config) Parameters() map[string]sdk.Parameter {
 	return map[string]sdk.Parameter{
+		"maxDowntime": {
+			Default:     "10m",
+			Description: "max downtime accepted for the server to be off.",
+			Type:        sdk.ParameterTypeDuration,
+			Validations: []sdk.Validation{},
+		},
 		"rateLimit": {
 			Default:     "0",
 			Description: "the bandwidth limit in bytes/second, use \"0\" to disable rate limiting.",
@@ -16,6 +22,12 @@ func (Config) Parameters() map[string]sdk.Parameter {
 			Validations: []sdk.Validation{
 				sdk.ValidationGreaterThan{Value: -1},
 			},
+		},
+		"reconnectDelay": {
+			Default:     "1m",
+			Description: "delay between each gRPC request retry.",
+			Type:        sdk.ParameterTypeDuration,
+			Validations: []sdk.Validation{},
 		},
 		"url": {
 			Default:     "",

@@ -82,7 +82,12 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	// prepare destination (client)
 	ctx := context.Background()
 	dest := NewDestinationWithDialer(dialer)
-	err := dest.Configure(ctx, map[string]string{"url": "bufnet", "rateLimit": "10000"})
+	err := dest.Configure(ctx, map[string]string{
+		"url":            "bufnet",
+		"rateLimit":      "10000",
+		"maxDowntime":    "10s",
+		"reconnectDelay": "2s",
+	})
 	is.NoErr(err)
 	err = dest.Open(ctx)
 	is.NoErr(err)
