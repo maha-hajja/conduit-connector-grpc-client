@@ -19,10 +19,12 @@ server, then waits for acknowledgments to be received from the server through th
 
 ### Configuration
 
-| name        | description                                                            | required | default value |
-|-------------|------------------------------------------------------------------------|----------|---------------|
-| `url`       | url to gRPC server.                                                    | true     |               |
-| `rateLimit` | the bandwidth limit in bytes/second, use "0" to disable rate limiting. | false    | 0             |
+| name             | description                                                            | required | default value |
+|------------------|------------------------------------------------------------------------|----------|---------------|
+| `url`            | url to gRPC server.                                                    | true     |               |
+| `rateLimit`      | the bandwidth limit in bytes/second, use `0` to disable rate limiting. | false    | `0`           |
+| `reconnectDelay` | delay between each gRPC request retry.                                 | false    | `1m`          |
+| `maxDowntime`    | max downtime accepted for the server to be off.                        | false    | `10m`         |
 
 ## Planned work
 - Add a source for gRPC client. 

@@ -35,6 +35,7 @@ import (
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
+	"gopkg.in/tomb.v2"
 )
 
 type Destination struct {
@@ -45,6 +46,7 @@ type Destination struct {
 	stream      pb.SourceService_StreamClient
 	streamMutex sync.Mutex
 	errCh       chan error
+	t           *tomb.Tomb
 
 	// for testing: always empty, unless it's a test
 	dialer func(ctx context.Context, _ string) (net.Conn, error)
@@ -112,7 +114,11 @@ func (d *Destination) Open(ctx context.Context) error {
 	}
 	d.errCh = make(chan error, 1)
 	// spawn a go routine to monitor the connection status
-	go d.monitorConnectionStatus(ctx, client)
+	d.t = &tomb.Tomb{}
+	d.t.Go(func() error {
+		d.monitorConnectionStatus(ctx, client)
+		return nil
+	})
 	return nil
 }
 
@@ -143,7 +149,7 @@ func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, err
 func (d *Destination) sendRecordWithRetries(ctx context.Context, record *opencdcv1.Record) error {
 	d.streamMutex.Lock()
 	if d.stream == nil {
-		// stream would be nil in the case of trying to reconnect and it failed
+		// stream would be nil in the case of a failed reconnection
 		err := <-d.errCh
 		return err
 	}
@@ -210,19 +216,30 @@ func (d *Destination) waitForReadyState(ctx context.Context, currentState connec
 // is locked and reconnect method is called. lock will be released once connection is restored or `maxDowntime` is reached.
 func (d *Destination) monitorConnectionStatus(ctx context.Context, client pb.SourceServiceClient) {
 	ticker := time.NewTicker(d.config.ReconnectDelay)
-	for range ticker.C {
-		state := d.conn.GetState()
-		if state != connectivity.Ready {
-			sdk.Logger(ctx).Warn().Msg("connection to the server is lost, will try and reconnect every `reconnectDelay`")
-			// lock stream until connection is restored, or an error occurred
-			d.streamMutex.Lock()
-			err := d.reconnect(ctx, client)
-			if err != nil {
+	for {
+		select {
+		case <-ticker.C:
+			state := d.conn.GetState()
+			if state != connectivity.Ready {
+				sdk.Logger(ctx).Warn().Msg("connection to the server is lost, will try and reconnect every `reconnectDelay`")
+				// lock stream until connection is restored, or an error occurred
+				d.streamMutex.Lock()
+				err := d.reconnect(ctx, client)
+				if err != nil {
+					d.streamMutex.Unlock()
+					select {
+					case d.errCh <- err:
+					// error added
+					case <-d.t.Dying():
+						return
+					}
+					return
+				}
 				d.streamMutex.Unlock()
-				d.errCh <- err
-				return
 			}
-			d.streamMutex.Unlock()
+		case <-d.t.Dying():
+			// exit go routine
+			return
 		}
 	}
 }
@@ -248,6 +265,9 @@ func (d *Destination) reconnect(ctx context.Context, client pb.SourceServiceClie
 		case <-ctx.Done():
 			cancel()
 			return fmt.Errorf("connector context is canceled")
+		case <-d.t.Dying():
+			cancel()
+			return fmt.Errorf("tearing down connector")
 		}
 	}
 }
@@ -264,6 +284,10 @@ func (d *Destination) Teardown(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+	if d.t != nil {
+		d.t.Kill(nil)
+		_ = d.t.Wait()
 	}
 	if d.errCh != nil {
 		close(d.errCh)

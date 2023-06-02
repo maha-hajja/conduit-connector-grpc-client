@@ -23,6 +23,7 @@ import (
 	"net"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/conduitio-labs/conduit-connector-grpc-client/fromproto"
 	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
@@ -68,6 +69,49 @@ func TestWrite_Success(t *testing.T) {
 	is.Equal(n, 2)
 }
 
+func TestBackoffRetry_MaxDowntime(t *testing.T) {
+	is := is.New(t)
+	// use in-memory connection
+	lis := bufconn.Listen(1024 * 1024)
+	dialer := func(ctx context.Context, _ string) (net.Conn, error) {
+		return lis.DialContext(ctx)
+	}
+
+	// prepare server
+	srv := grpc.NewServer()
+
+	// start gRPC server
+	go func() {
+		err := srv.Serve(lis)
+		is.NoErr(err)
+	}()
+	defer srv.Stop()
+
+	// prepare destination (client)
+	ctx := context.Background()
+	dest := NewDestinationWithDialer(dialer)
+	err := dest.Configure(ctx, map[string]string{
+		"url":            "bufnet",
+		"rateLimit":      "0",
+		"maxDowntime":    "1s",
+		"reconnectDelay": "200ms",
+	})
+	is.NoErr(err)
+	// Open will start monitoring connection status
+	err = dest.Open(ctx)
+	is.NoErr(err)
+	// connection will be lost
+	srv.Stop()
+	// maxDowntime is 1 second, sleep for 2
+	time.Sleep(2 * time.Second)
+	// attempt to write a record, to get the connection error
+	n, err := dest.Write(ctx, []sdk.Record{
+		{Position: sdk.Position("foo")},
+	})
+	is.Equal(err.Error(), "failed to send record: maxDowntime is reached while waiting for server to reconnect")
+	is.Equal(n, 0)
+}
+
 func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Destination, context.Context) {
 	is := is.New(t)
 	// use in-memory connection
@@ -84,9 +128,9 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	dest := NewDestinationWithDialer(dialer)
 	err := dest.Configure(ctx, map[string]string{
 		"url":            "bufnet",
-		"rateLimit":      "10000",
-		"maxDowntime":    "10s",
-		"reconnectDelay": "2s",
+		"rateLimit":      "0",
+		"maxDowntime":    "1m",
+		"reconnectDelay": "10s",
 	})
 	is.NoErr(err)
 	err = dest.Open(ctx)
