@@ -107,10 +107,12 @@ func (s *sourceService) Stream(stream pb.SourceService_StreamServer) error {
 	printf("stream opened")
 	defer s.stream.Store(nil)
 	go func() {
-		rec, err := stream.Recv()
-		printf("received a message, rec: %v, err: %v", rec, err)
-		if err != nil {
-			return
+		for {
+			rec, err := stream.Recv()
+			printf("received a message, rec: %v, err: %v", rec, err)
+			if err != nil {
+				return
+			}
 		}
 	}()
 	<-stream.Context().Done()
