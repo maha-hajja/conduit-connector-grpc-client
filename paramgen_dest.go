@@ -24,7 +24,7 @@ func (Config) Parameters() map[string]sdk.Parameter {
 			},
 		},
 		"reconnectDelay": {
-			Default:     "1m",
+			Default:     "5s",
 			Description: "delay between each gRPC request retry.",
 			Type:        sdk.ParameterTypeDuration,
 			Validations: []sdk.Validation{},

@@ -33,8 +33,10 @@ import (
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"gopkg.in/tomb.v2"
 )
 
@@ -58,7 +60,7 @@ type Config struct {
 	// the bandwidth limit in bytes/second, use "0" to disable rate limiting.
 	RateLimit int `json:"rateLimit" default:"0" validate:"gt=-1"`
 	// delay between each gRPC request retry.
-	ReconnectDelay time.Duration `json:"reconnectDelay" default:"1m"`
+	ReconnectDelay time.Duration `json:"reconnectDelay" default:"5s"`
 	// max downtime accepted for the server to be off.
 	MaxDowntime time.Duration `json:"maxDowntime" default:"10m"`
 }
@@ -96,7 +98,9 @@ func (d *Destination) Open(ctx context.Context) error {
 		dialOptions = append(dialOptions,
 			bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer))
 	}
-	conn, err := grpc.DialContext(ctx,
+	ctxTimeout, cancel := context.WithTimeout(ctx, d.config.MaxDowntime)
+	defer cancel()
+	conn, err := grpc.DialContext(ctxTimeout,
 		d.config.URL,
 		dialOptions...,
 	)
@@ -154,9 +158,9 @@ func (d *Destination) sendRecordWithRetries(ctx context.Context, record *opencdc
 		return err
 	}
 	err := d.stream.Send(record)
-	if state := d.conn.GetState(); err == io.EOF && state != connectivity.Ready {
+	if err == io.EOF || status.Code(err) == codes.Unavailable {
 		d.streamMutex.Unlock()
-		err := d.waitForReadyState(ctx, state)
+		err := d.waitForReadyState(ctx, d.conn.GetState())
 		if err != nil {
 			return err
 		}
@@ -173,9 +177,9 @@ func (d *Destination) recvAckWithRetries(ctx context.Context) (*pb.Ack, error) {
 		return nil, err
 	}
 	ack, err := d.stream.Recv()
-	if state := d.conn.GetState(); err == io.EOF && state != connectivity.Ready {
+	if err == io.EOF || status.Code(err) == codes.Unavailable {
 		d.streamMutex.Unlock()
-		err := d.waitForReadyState(ctx, state)
+		err := d.waitForReadyState(ctx, d.conn.GetState())
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +225,7 @@ func (d *Destination) monitorConnectionStatus(ctx context.Context, client pb.Sou
 		case <-ticker.C:
 			state := d.conn.GetState()
 			if state != connectivity.Ready {
-				sdk.Logger(ctx).Warn().Msg("connection to the server is lost, will try and reconnect every `reconnectDelay`")
+				sdk.Logger(ctx).Warn().Msgf("connection to the server is lost, will try and reconnect every %s", d.config.ReconnectDelay.String())
 				// lock stream until connection is restored, or an error occurred
 				d.streamMutex.Lock()
 				err := d.reconnect(ctx, client)
