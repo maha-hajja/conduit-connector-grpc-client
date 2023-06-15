@@ -94,7 +94,7 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 	err := dest.Configure(ctx, map[string]string{
 		"url":            "bufnet",
 		"rateLimit":      "0",
-		"maxDowntime":    "1s",
+		"maxDowntime":    "500ms",
 		"reconnectDelay": "200ms",
 	})
 	is.NoErr(err)
@@ -107,8 +107,8 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 	}()
 	// connection will be lost
 	srv.Stop()
-	// maxDowntime is 1 second, sleep for 2
-	time.Sleep(2 * time.Second)
+	// maxDowntime is 0.5 second, sleep for 1
+	time.Sleep(1 * time.Second)
 	// attempt to write a record, to get the connection error
 	n, err := dest.Write(ctx, []sdk.Record{
 		{Position: sdk.Position("foo")},

@@ -48,6 +48,7 @@ type Destination struct {
 	stream      pb.SourceService_StreamClient
 	streamMutex sync.Mutex
 	errCh       chan error
+	openCtx     context.Context
 	t           *tomb.Tomb
 
 	// for testing: always empty, unless it's a test
@@ -117,6 +118,7 @@ func (d *Destination) Open(ctx context.Context) error {
 		return fmt.Errorf("failed to create a bidirectional stream: %w", err)
 	}
 	d.errCh = make(chan error, 1)
+	d.openCtx = ctx
 	// spawn a go routine to monitor the connection status
 	d.t = &tomb.Tomb{}
 	d.t.Go(func() error {
@@ -210,6 +212,8 @@ func (d *Destination) waitForReadyState(ctx context.Context, currentState connec
 			return err
 		case <-ctx.Done():
 			return fmt.Errorf("connector context is canceled")
+		case <-d.openCtx.Done():
+			return fmt.Errorf("open context is canceled")
 		default:
 		}
 	}
@@ -231,16 +235,15 @@ func (d *Destination) monitorConnectionStatus(ctx context.Context, client pb.Sou
 				err := d.reconnect(ctx, client)
 				if err != nil {
 					d.streamMutex.Unlock()
-					select {
-					case d.errCh <- err:
-					// error added
-					case <-d.t.Dying():
-						return
-					}
+					d.errCh <- err
+					d.t.Kill(err)
 					return
 				}
 				d.streamMutex.Unlock()
 			}
+		case <-ctx.Done():
+			d.t.Kill(nil)
+			return
 		case <-d.t.Dying():
 			// exit go routine
 			return
