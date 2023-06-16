@@ -19,6 +19,7 @@ package grpcclient
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -47,8 +48,6 @@ type Destination struct {
 	conn        *grpc.ClientConn
 	stream      pb.SourceService_StreamClient
 	streamMutex sync.Mutex
-	errCh       chan error
-	openCtx     context.Context
 	t           *tomb.Tomb
 
 	// for testing: always empty, unless it's a test
@@ -65,6 +64,12 @@ type Config struct {
 	// max downtime accepted for the server to be off.
 	MaxDowntime time.Duration `json:"maxDowntime" default:"10m"`
 }
+
+var (
+	openContextCanceledErr  = errors.New("open context is canceled")
+	writeContextCanceledErr = errors.New("write context is canceled")
+	maxDowntimeReachedErr   = errors.New("maxDowntime is reached while waiting for server to reconnect")
+)
 
 // NewDestinationWithDialer for testing purposes.
 func NewDestinationWithDialer(dialer func(ctx context.Context, _ string) (net.Conn, error)) sdk.Destination {
@@ -117,13 +122,10 @@ func (d *Destination) Open(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create a bidirectional stream: %w", err)
 	}
-	d.errCh = make(chan error, 1)
-	d.openCtx = ctx
 	// spawn a go routine to monitor the connection status
-	d.t = &tomb.Tomb{}
+	d.t, ctx = tomb.WithContext(ctx)
 	d.t.Go(func() error {
-		d.monitorConnectionStatus(ctx, client)
-		return nil
+		return d.monitorConnectionStatus(ctx, client)
 	})
 	return nil
 }
@@ -154,10 +156,10 @@ func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, err
 
 func (d *Destination) sendRecordWithRetries(ctx context.Context, record *opencdcv1.Record) error {
 	d.streamMutex.Lock()
-	if d.stream == nil {
-		// stream would be nil in the case of a failed reconnection
-		err := <-d.errCh
-		return err
+	select {
+	case <-d.t.Dying():
+		return d.t.Err()
+	default:
 	}
 	err := d.stream.Send(record)
 	if err == io.EOF || status.Code(err) == codes.Unavailable {
@@ -174,9 +176,10 @@ func (d *Destination) sendRecordWithRetries(ctx context.Context, record *opencdc
 
 func (d *Destination) recvAckWithRetries(ctx context.Context) (*pb.Ack, error) {
 	d.streamMutex.Lock()
-	if d.stream == nil {
-		err := <-d.errCh
-		return nil, err
+	select {
+	case <-d.t.Dying():
+		return nil, d.t.Err()
+	default:
 	}
 	ack, err := d.stream.Recv()
 	if err == io.EOF || status.Code(err) == codes.Unavailable {
@@ -208,12 +211,10 @@ func (d *Destination) waitForReadyState(ctx context.Context, currentState connec
 			break
 		}
 		select {
-		case err := <-d.errCh:
-			return err
+		case <-d.t.Dying():
+			return d.t.Err()
 		case <-ctx.Done():
-			return fmt.Errorf("connector context is canceled")
-		case <-d.openCtx.Done():
-			return fmt.Errorf("open context is canceled")
+			return writeContextCanceledErr
 		default:
 		}
 	}
@@ -222,7 +223,7 @@ func (d *Destination) waitForReadyState(ctx context.Context, currentState connec
 
 // monitorConnectionStatus checks the status of the connection each `ReconnectDelay`, if connection is lost, the stream
 // is locked and reconnect method is called. lock will be released once connection is restored or `maxDowntime` is reached.
-func (d *Destination) monitorConnectionStatus(ctx context.Context, client pb.SourceServiceClient) {
+func (d *Destination) monitorConnectionStatus(ctx context.Context, client pb.SourceServiceClient) error {
 	ticker := time.NewTicker(d.config.ReconnectDelay)
 	for {
 		select {
@@ -235,18 +236,12 @@ func (d *Destination) monitorConnectionStatus(ctx context.Context, client pb.Sou
 				err := d.reconnect(ctx, client)
 				if err != nil {
 					d.streamMutex.Unlock()
-					d.errCh <- err
-					d.t.Kill(err)
-					return
+					return err
 				}
 				d.streamMutex.Unlock()
 			}
 		case <-ctx.Done():
-			d.t.Kill(nil)
-			return
-		case <-d.t.Dying():
-			// exit go routine
-			return
+			return openContextCanceledErr
 		}
 	}
 }
@@ -257,24 +252,20 @@ func (d *Destination) reconnect(ctx context.Context, client pb.SourceServiceClie
 	ticker := time.NewTicker(d.config.ReconnectDelay)
 	var err error
 	timeoutCtx, cancel := context.WithTimeout(ctx, d.config.MaxDowntime)
+	defer cancel()
 	for {
 		select {
 		case <-ticker.C:
 			d.stream, err = client.Stream(ctx)
 			if err == nil {
 				sdk.Logger(ctx).Info().Msg("connection to the server is restored")
-				cancel()
 				return nil
 			}
+			sdk.Logger(ctx).Warn().Msgf("failed reconnection attempt to the server: %s", err.Error())
 		case <-timeoutCtx.Done():
-			cancel()
-			return fmt.Errorf("maxDowntime is reached while waiting for server to reconnect")
+			return maxDowntimeReachedErr
 		case <-ctx.Done():
-			cancel()
-			return fmt.Errorf("connector context is canceled")
-		case <-d.t.Dying():
-			cancel()
-			return fmt.Errorf("tearing down connector")
+			return openContextCanceledErr
 		}
 	}
 }
@@ -295,9 +286,6 @@ func (d *Destination) Teardown(ctx context.Context) error {
 	if d.t != nil {
 		d.t.Kill(nil)
 		_ = d.t.Wait()
-	}
-	if d.errCh != nil {
-		close(d.errCh)
 	}
 	return nil
 }

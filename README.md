@@ -23,7 +23,7 @@ server, then waits for acknowledgments to be received from the server through th
 |------------------|------------------------------------------------------------------------|----------|---------------|
 | `url`            | url to gRPC server.                                                    | true     |               |
 | `rateLimit`      | the bandwidth limit in bytes/second, use `0` to disable rate limiting. | false    | `0`           |
-| `reconnectDelay` | delay between each gRPC request retry.                                 | false    | `1m`          |
+| `reconnectDelay` | delay between each gRPC request retry.                                 | false    | `5s`          |
 | `maxDowntime`    | max downtime accepted for the server to be off.                        | false    | `10m`         |
 
 ## Planned work

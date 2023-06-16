@@ -17,6 +17,7 @@ package grpcclient
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -113,7 +114,7 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 	n, err := dest.Write(ctx, []sdk.Record{
 		{Position: sdk.Position("foo")},
 	})
-	is.Equal(err.Error(), "failed to send record: maxDowntime is reached while waiting for server to reconnect")
+	is.True(errors.Is(err, maxDowntimeReachedErr))
 	is.Equal(n, 0)
 }
 
