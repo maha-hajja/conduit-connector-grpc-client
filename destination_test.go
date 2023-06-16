@@ -114,7 +114,7 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 	n, err := dest.Write(ctx, []sdk.Record{
 		{Position: sdk.Position("foo")},
 	})
-	is.True(errors.Is(err, maxDowntimeReachedErr))
+	is.True(errors.Is(err, errDowntimeReached))
 	is.Equal(n, 0)
 }
 

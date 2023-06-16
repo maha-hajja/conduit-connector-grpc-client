@@ -66,9 +66,9 @@ type Config struct {
 }
 
 var (
-	openContextCanceledErr  = errors.New("open context is canceled")
-	writeContextCanceledErr = errors.New("write context is canceled")
-	maxDowntimeReachedErr   = errors.New("maxDowntime is reached while waiting for server to reconnect")
+	errOpenContextCanceled  = errors.New("open context is canceled")
+	errWriteContextCanceled = errors.New("write context is canceled")
+	errDowntimeReached      = errors.New("maxDowntime is reached while waiting for server to reconnect")
 )
 
 // NewDestinationWithDialer for testing purposes.
@@ -214,7 +214,7 @@ func (d *Destination) waitForReadyState(ctx context.Context, currentState connec
 		case <-d.t.Dying():
 			return d.t.Err()
 		case <-ctx.Done():
-			return writeContextCanceledErr
+			return errWriteContextCanceled
 		default:
 		}
 	}
@@ -241,7 +241,7 @@ func (d *Destination) monitorConnectionStatus(ctx context.Context, client pb.Sou
 				d.streamMutex.Unlock()
 			}
 		case <-ctx.Done():
-			return openContextCanceledErr
+			return errOpenContextCanceled
 		}
 	}
 }
@@ -263,9 +263,9 @@ func (d *Destination) reconnect(ctx context.Context, client pb.SourceServiceClie
 			}
 			sdk.Logger(ctx).Warn().Msgf("failed reconnection attempt to the server: %s", err.Error())
 		case <-timeoutCtx.Done():
-			return maxDowntimeReachedErr
+			return errDowntimeReached
 		case <-ctx.Done():
-			return openContextCanceledErr
+			return errOpenContextCanceled
 		}
 	}
 }
