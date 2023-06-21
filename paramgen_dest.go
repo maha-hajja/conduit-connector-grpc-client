@@ -7,7 +7,7 @@ import (
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
-func (Config) Parameters() map[string]sdk.Parameter {
+func (DestConfig) Parameters() map[string]sdk.Parameter {
 	return map[string]sdk.Parameter{
 		"maxDowntime": {
 			Default:     "10m",
@@ -27,6 +27,30 @@ func (Config) Parameters() map[string]sdk.Parameter {
 			Default:     "5s",
 			Description: "delay between each gRPC request retry.",
 			Type:        sdk.ParameterTypeDuration,
+			Validations: []sdk.Validation{},
+		},
+		"tls.CA.certPath": {
+			Default:     "",
+			Description: "the root CA certificate path.",
+			Type:        sdk.ParameterTypeString,
+			Validations: []sdk.Validation{},
+		},
+		"tls.client.certPath": {
+			Default:     "",
+			Description: "the client certificate path.",
+			Type:        sdk.ParameterTypeString,
+			Validations: []sdk.Validation{},
+		},
+		"tls.client.keyPath": {
+			Default:     "",
+			Description: "the client private key path.",
+			Type:        sdk.ParameterTypeString,
+			Validations: []sdk.Validation{},
+		},
+		"tls.disable": {
+			Default:     "false",
+			Description: "flag to disable mTLS secure connection, set it to `true` for an insecure connection.",
+			Type:        sdk.ParameterTypeBool,
 			Validations: []sdk.Validation{},
 		},
 		"url": {

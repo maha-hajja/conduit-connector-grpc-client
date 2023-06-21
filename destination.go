@@ -14,11 +14,13 @@
 
 package grpcclient
 
-//go:generate paramgen -output=paramgen_dest.go Config
+//go:generate paramgen -output=paramgen_dest.go DestConfig
 
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -36,6 +38,7 @@ import (
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"gopkg.in/tomb.v2"
@@ -44,25 +47,22 @@ import (
 type Destination struct {
 	sdk.UnimplementedDestination
 
-	config      Config
+	config      DestConfig
 	conn        *grpc.ClientConn
 	stream      pb.SourceService_StreamClient
 	streamMutex sync.Mutex
 	t           *tomb.Tomb
 
+	// mTLS
+	clientCert tls.Certificate
+	caCertPool *x509.CertPool
+
 	// for testing: always empty, unless it's a test
 	dialer func(ctx context.Context, _ string) (net.Conn, error)
 }
 
-type Config struct {
-	// url to gRPC server
-	URL string `json:"url" validate:"required"`
-	// the bandwidth limit in bytes/second, use "0" to disable rate limiting.
-	RateLimit int `json:"rateLimit" default:"0" validate:"gt=-1"`
-	// delay between each gRPC request retry.
-	ReconnectDelay time.Duration `json:"reconnectDelay" default:"5s"`
-	// max downtime accepted for the server to be off.
-	MaxDowntime time.Duration `json:"maxDowntime" default:"10m"`
+type DestConfig struct {
+	Config
 }
 
 var (
@@ -90,19 +90,35 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
+	if !d.config.TLSDisable {
+		d.clientCert, d.caCertPool, err = d.config.ParseMTLSFiles()
+		if err != nil {
+			return fmt.Errorf("invalid mTLS config: %w", err)
+		}
+	}
 	return nil
 }
 
 func (d *Destination) Open(ctx context.Context) error {
 	dialOptions := []grpc.DialOption{
 		grpc.WithContextDialer(d.dialer),
-		grpc.WithTransportCredentials(insecure.NewCredentials()), // todo: will use mTLS with connection
 		grpc.WithBlock(),
 		grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.DefaultConfig}),
 	}
 	if d.config.RateLimit > 0 {
 		dialOptions = append(dialOptions,
 			bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer))
+	}
+	if !d.config.TLSDisable {
+		// create TLS credentials with mTLS configuration
+		creds := credentials.NewTLS(&tls.Config{
+			Certificates: []tls.Certificate{d.clientCert},
+			RootCAs:      d.caCertPool,
+			MinVersion:   tls.VersionTLS12,
+		})
+		dialOptions = append(dialOptions, grpc.WithTransportCredentials(creds))
+	} else {
+		dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 	ctxTimeout, cancel := context.WithTimeout(ctx, d.config.MaxDowntime)
 	defer cancel()
