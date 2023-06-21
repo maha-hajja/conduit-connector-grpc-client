@@ -14,14 +14,17 @@
 
 package grpcclient
 
-//go:generate paramgen -output=paramgen_dest.go Config
+//go:generate paramgen -output=paramgen_dest.go DestConfig
 
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
+	"time"
 
 	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
 	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
@@ -29,24 +32,27 @@ import (
 	"github.com/conduitio/bwlimit/bwgrpc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Destination struct {
 	sdk.UnimplementedDestination
 
-	config Config
+	config DestConfig
 	conn   *grpc.ClientConn
 	stream pb.SourceService_StreamClient
+
+	// mTLS
+	clientCert tls.Certificate
+	caCertPool *x509.CertPool
 
 	// for testing: always empty, unless it's a test
 	dialer func(ctx context.Context, _ string) (net.Conn, error)
 }
 
-type Config struct {
-	// url to gRPC server
-	URL string `json:"url" validate:"required"`
-	// the bandwidth limit in bytes/second, use "0" to disable rate limiting.
-	RateLimit int `json:"rateLimit" default:"0" validate:"gt=-1"`
+type DestConfig struct {
+	Config
 }
 
 // NewDestinationWithDialer for testing purposes.
@@ -68,20 +74,39 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
+	if !d.config.TLSDisable {
+		d.clientCert, d.caCertPool, err = d.config.ParseMTLSFiles()
+		if err != nil {
+			return fmt.Errorf("invalid mTLS config: %w", err)
+		}
+	}
 	return nil
 }
 
 func (d *Destination) Open(ctx context.Context) error {
 	dialOptions := []grpc.DialOption{
 		grpc.WithContextDialer(d.dialer),
-		grpc.WithInsecure(), //nolint:staticcheck // todo: will use mTLS with connection
+		grpc.WithTransportCredentials(insecure.NewCredentials()), // todo: will use mTLS with connection
 		grpc.WithBlock(),
 	}
 	if d.config.RateLimit > 0 {
 		dialOptions = append(dialOptions,
 			bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer))
 	}
-	conn, err := grpc.DialContext(ctx,
+	if !d.config.TLSDisable {
+		// create TLS credentials with mTLS configuration
+		creds := credentials.NewTLS(&tls.Config{
+			Certificates: []tls.Certificate{d.clientCert},
+			RootCAs:      d.caCertPool,
+			MinVersion:   tls.VersionTLS12,
+		})
+		dialOptions = append(dialOptions, grpc.WithTransportCredentials(creds))
+	} else {
+		dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+	ctxTimeout, cancel := context.WithTimeout(ctx, time.Minute) // time.Minute is temporary until backoff retries is merged
+	defer cancel()
+	conn, err := grpc.DialContext(ctxTimeout,
 		d.config.URL,
 		dialOptions...,
 	)

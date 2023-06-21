@@ -19,10 +19,21 @@ server, then waits for acknowledgments to be received from the server through th
 
 ### Configuration
 
-| name        | description                                                            | required | default value |
-|-------------|------------------------------------------------------------------------|----------|---------------|
-| `url`       | url to gRPC server.                                                    | true     |               |
-| `rateLimit` | the bandwidth limit in bytes/second, use "0" to disable rate limiting. | false    | 0             |
+| name                  | description                                                                          | required                             | default value |
+|-----------------------|--------------------------------------------------------------------------------------|--------------------------------------|---------------|
+| `url`                 | url to gRPC server.                                                                  | true                                 |               |
+| `rateLimit`           | the bandwidth limit in bytes/second, use `0` to disable rate limiting.               | false                                | `0`           |
+| `tls.disable`         | flag to disable mTLS secure connection, set it to `true` for an insecure connection. | false                                | `false`       |
+| `tls.client.certPath` | the client certificate path.                                                         | required if `tls.disable` is `false` |               |
+| `tls.client.keyPath`  | the client private key path.                                                         | required if `tls.disable` is `false` |               |
+| `tls.CA.certPath`     | the root CA certificate path.                                                        | required if `tls.disable` is `false` |               |
+
+## Mutual TLS (mTLS)
+Mutual TLS is used by default to connect to the server, to disable mTLS you can set the parameter `tls.disable`
+to `true`, this will result in an insecure connection to the server.
+
+To generate self-signed certificates for both a server and a client, run `make generate-certs`, this will generate certificates
+under the directory `./test/certs`.
 
 ## Planned work
 - Add a source for gRPC client. 

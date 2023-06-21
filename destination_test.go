@@ -17,10 +17,13 @@ package grpcclient
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
 	"sync"
 	"testing"
 
@@ -30,7 +33,37 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/matryer/is"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/test/bufconn"
+)
+
+var records = []sdk.Record{
+	{
+		Position:  sdk.Position("foo"),
+		Operation: sdk.OperationSnapshot,
+		Key:       sdk.StructuredData{"id1": "6"},
+		Payload: sdk.Change{
+			After: sdk.StructuredData{
+				"foo": "bar",
+			},
+		},
+	},
+	{
+		Position:  sdk.Position("foobar"),
+		Operation: sdk.OperationSnapshot,
+		Key:       sdk.RawData("bar"),
+		Payload: sdk.Change{
+			After: sdk.RawData("baz"),
+		},
+	},
+}
+
+const (
+	clientCertPath = "./test/certs/client.crt"
+	clientKeyPath  = "./test/certs/client.key"
+	serverCertPath = "./test/certs/server.crt"
+	serverKeyPath  = "./test/certs/server.key"
+	caCertPath     = "./test/certs/ca.crt"
 )
 
 func TestTeardown_NoOpen(t *testing.T) {
@@ -40,28 +73,28 @@ func TestTeardown_NoOpen(t *testing.T) {
 	is.NoErr(err)
 }
 
+func TestConfigure_DisableMTLS(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dest := NewDestination()
+	err := dest.Configure(ctx, map[string]string{
+		"url":                 "localhost",
+		"tls.disable":         "false",
+		"tls.client.certPath": "", // empty path, should fail
+		"tls.client.keyPath":  clientKeyPath,
+		"tls.CA.certPath":     caCertPath,
+	})
+	is.True(err != nil)
+	err = dest.Configure(ctx, map[string]string{
+		"url":                 "localhost",
+		"tls.disable":         "true", // disabled
+		"tls.client.certPath": "",     // should be ok
+	})
+	is.NoErr(err)
+}
+
 func TestWrite_Success(t *testing.T) {
 	is := is.New(t)
-	records := []sdk.Record{
-		{
-			Position:  sdk.Position("foo"),
-			Operation: sdk.OperationSnapshot,
-			Key:       sdk.StructuredData{"id1": "6"},
-			Payload: sdk.Change{
-				After: sdk.StructuredData{
-					"foo": "bar",
-				},
-			},
-		},
-		{
-			Position:  sdk.Position("foobar"),
-			Operation: sdk.OperationSnapshot,
-			Key:       sdk.RawData("bar"),
-			Payload: sdk.Change{
-				After: sdk.RawData("baz"),
-			},
-		},
-	}
 	dest, ctx := prepareServerAndDestination(t, records)
 	n, err := dest.Write(ctx, records)
 	is.NoErr(err)
@@ -77,12 +110,17 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	}
 
 	// prepare server
-	startTestServer(t, lis, expected)
+	startTestServer(t, lis, true, expected)
 
 	// prepare destination (client)
 	ctx := context.Background()
 	dest := NewDestinationWithDialer(dialer)
-	err := dest.Configure(ctx, map[string]string{"url": "bufnet", "rateLimit": "10000"})
+	err := dest.Configure(ctx, map[string]string{
+		"url":                 "localhost",
+		"tls.client.certPath": clientCertPath,
+		"tls.client.keyPath":  clientKeyPath,
+		"tls.CA.certPath":     caCertPath,
+	})
 	is.NoErr(err)
 	err = dest.Open(ctx)
 	is.NoErr(err)
@@ -96,9 +134,28 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	return dest, ctx
 }
 
-func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
+func startTestServer(t *testing.T, lis net.Listener, enableMTLS bool, expected []sdk.Record) {
+	is := is.New(t)
 	ctrl := gomock.NewController(t)
-	srv := grpc.NewServer()
+	serverOptions := make([]grpc.ServerOption, 0, 1)
+	if enableMTLS {
+		serverCert, err := tls.LoadX509KeyPair(serverCertPath, serverKeyPath)
+		is.NoErr(err)
+		caCert, err := os.ReadFile(caCertPath)
+		is.NoErr(err)
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		// create TLS credentials with mTLS configuration
+		creds := credentials.NewTLS(&tls.Config{
+			Certificates: []tls.Certificate{serverCert},
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    caCertPool,
+			MinVersion:   tls.VersionTLS12,
+		})
+		serverOptions = append(serverOptions, grpc.Creds(creds))
+	}
+	srv := grpc.NewServer(serverOptions...)
 
 	// create and register simple mock server
 	mockServer := pb.NewMockSourceServiceServer(ctrl)
@@ -146,7 +203,7 @@ func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
 		}
 	}()
 	t.Cleanup(func() {
-		srv.GracefulStop()
+		srv.Stop()
 		wg.Wait()
 	})
 }
