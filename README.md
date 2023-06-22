@@ -19,21 +19,24 @@ server, then waits for acknowledgments to be received from the server through th
 
 ### Configuration
 
-| name                  | description                                                                          | required                             | default value |
-|-----------------------|--------------------------------------------------------------------------------------|--------------------------------------|---------------|
-| `url`                 | url to gRPC server.                                                                  | true                                 |               |
-| `rateLimit`           | the bandwidth limit in bytes/second, use `0` to disable rate limiting.               | false                                | `0`           |
-| `tls.disable`         | flag to disable mTLS secure connection, set it to `true` for an insecure connection. | false                                | `false`       |
-| `tls.client.certPath` | the client certificate path.                                                         | required if `tls.disable` is `false` |               |
-| `tls.client.keyPath`  | the client private key path.                                                         | required if `tls.disable` is `false` |               |
-| `tls.CA.certPath`     | the root CA certificate path.                                                        | required if `tls.disable` is `false` |               |
+| name                   | description                                                                          | required                              | default value |
+|------------------------|--------------------------------------------------------------------------------------|---------------------------------------|---------------|
+| `url`                  | url to gRPC server.                                                                  | true                                  |               |
+| `rateLimit`            | the bandwidth limit in bytes/second, use `0` to disable rate limiting.               | false                                 | `0`           |
+| `mtls.disable`         | flag to disable mTLS secure connection, set it to `true` for an insecure connection. | false                                 | `false`       |
+| `mtls.client.certPath` | the client certificate path.                                                         | required if `mtls.disable` is `false` |               |
+| `mtls.client.keyPath`  | the client private key path.                                                         | required if `mtls.disable` is `false` |               |
+| `mtls.CA.certPath`     | the root CA certificate path.                                                        | required if `mtls.disable` is `false` |               |
 
 ## Mutual TLS (mTLS)
-Mutual TLS is used by default to connect to the server, to disable mTLS you can set the parameter `tls.disable`
+Mutual TLS is used by default to connect to the server, to disable mTLS you can set the parameter `mtls.disable`
 to `true`, this will result in an insecure connection to the server.
 
-To generate self-signed certificates for both a server and a client, run `make generate-certs`, this will generate certificates
-under the directory `./test/certs`.
+This repo contains self-signed certificates that can be used for local testing purposes, you can find them
+under `./test/certs`, note that these certificates are not meant to be used in production environment.
+
+To generate your own secure mTLS certificates, check
+[this tutorial](https://medium.com/weekly-webtips/how-to-generate-keys-for-mutual-tls-authentication-a90f53bcec64).
 
 ## Planned work
 - Add a source for gRPC client. 

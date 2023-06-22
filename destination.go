@@ -74,10 +74,10 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
-	if !d.config.TLSDisable {
+	if !d.config.MTLS.Disable {
 		d.clientCert, d.caCertPool, err = d.config.ParseMTLSFiles()
 		if err != nil {
-			return fmt.Errorf("invalid mTLS config: %w", err)
+			return err
 		}
 	}
 	return nil
@@ -86,19 +86,18 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 func (d *Destination) Open(ctx context.Context) error {
 	dialOptions := []grpc.DialOption{
 		grpc.WithContextDialer(d.dialer),
-		grpc.WithTransportCredentials(insecure.NewCredentials()), // todo: will use mTLS with connection
 		grpc.WithBlock(),
 	}
 	if d.config.RateLimit > 0 {
 		dialOptions = append(dialOptions,
 			bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer))
 	}
-	if !d.config.TLSDisable {
+	if !d.config.MTLS.Disable {
 		// create TLS credentials with mTLS configuration
 		creds := credentials.NewTLS(&tls.Config{
 			Certificates: []tls.Certificate{d.clientCert},
 			RootCAs:      d.caCertPool,
-			MinVersion:   tls.VersionTLS12,
+			MinVersion:   tls.VersionTLS13,
 		})
 		dialOptions = append(dialOptions, grpc.WithTransportCredentials(creds))
 	} else {

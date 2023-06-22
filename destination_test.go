@@ -78,17 +78,17 @@ func TestConfigure_DisableMTLS(t *testing.T) {
 	ctx := context.Background()
 	dest := NewDestination()
 	err := dest.Configure(ctx, map[string]string{
-		"url":                 "localhost",
-		"tls.disable":         "false",
-		"tls.client.certPath": "", // empty path, should fail
-		"tls.client.keyPath":  clientKeyPath,
-		"tls.CA.certPath":     caCertPath,
+		"url":                  "localhost",
+		"mtls.disable":         "false",
+		"mtls.client.certPath": "", // empty path, should fail
+		"mtls.client.keyPath":  clientKeyPath,
+		"mtls.CA.certPath":     caCertPath,
 	})
 	is.True(err != nil)
 	err = dest.Configure(ctx, map[string]string{
-		"url":                 "localhost",
-		"tls.disable":         "true", // disabled
-		"tls.client.certPath": "",     // should be ok
+		"url":                  "localhost",
+		"mtls.disable":         "true", // disabled
+		"mtls.client.certPath": "",     // should be ok
 	})
 	is.NoErr(err)
 }
@@ -116,10 +116,10 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	ctx := context.Background()
 	dest := NewDestinationWithDialer(dialer)
 	err := dest.Configure(ctx, map[string]string{
-		"url":                 "localhost",
-		"tls.client.certPath": clientCertPath,
-		"tls.client.keyPath":  clientKeyPath,
-		"tls.CA.certPath":     caCertPath,
+		"url":                  "localhost",
+		"mtls.client.certPath": clientCertPath,
+		"mtls.client.keyPath":  clientKeyPath,
+		"mtls.CA.certPath":     caCertPath,
 	})
 	is.NoErr(err)
 	err = dest.Open(ctx)
@@ -151,7 +151,7 @@ func startTestServer(t *testing.T, lis net.Listener, enableMTLS bool, expected [
 			Certificates: []tls.Certificate{serverCert},
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			ClientCAs:    caCertPool,
-			MinVersion:   tls.VersionTLS12,
+			MinVersion:   tls.VersionTLS13,
 		})
 		serverOptions = append(serverOptions, grpc.Creds(creds))
 	}

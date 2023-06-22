@@ -9,6 +9,30 @@ import (
 
 func (DestConfig) Parameters() map[string]sdk.Parameter {
 	return map[string]sdk.Parameter{
+		"mtls.CA.certPath": {
+			Default:     "",
+			Description: "the root CA certificate path.",
+			Type:        sdk.ParameterTypeString,
+			Validations: []sdk.Validation{},
+		},
+		"mtls.client.certPath": {
+			Default:     "",
+			Description: "the client certificate path.",
+			Type:        sdk.ParameterTypeString,
+			Validations: []sdk.Validation{},
+		},
+		"mtls.client.keyPath": {
+			Default:     "",
+			Description: "the client private key path.",
+			Type:        sdk.ParameterTypeString,
+			Validations: []sdk.Validation{},
+		},
+		"mtls.disable": {
+			Default:     "false",
+			Description: "flag to disable mTLS secure connection, set it to `true` for an insecure connection.",
+			Type:        sdk.ParameterTypeBool,
+			Validations: []sdk.Validation{},
+		},
 		"rateLimit": {
 			Default:     "0",
 			Description: "the bandwidth limit in bytes/second, use \"0\" to disable rate limiting.",
@@ -16,30 +40,6 @@ func (DestConfig) Parameters() map[string]sdk.Parameter {
 			Validations: []sdk.Validation{
 				sdk.ValidationGreaterThan{Value: -1},
 			},
-		},
-		"tls.CA.certPath": {
-			Default:     "",
-			Description: "the root CA certificate path.",
-			Type:        sdk.ParameterTypeString,
-			Validations: []sdk.Validation{},
-		},
-		"tls.client.certPath": {
-			Default:     "",
-			Description: "the client certificate path.",
-			Type:        sdk.ParameterTypeString,
-			Validations: []sdk.Validation{},
-		},
-		"tls.client.keyPath": {
-			Default:     "",
-			Description: "the client private key path.",
-			Type:        sdk.ParameterTypeString,
-			Validations: []sdk.Validation{},
-		},
-		"tls.disable": {
-			Default:     "false",
-			Description: "flag to disable mTLS secure connection, set it to `true` for an insecure connection.",
-			Type:        sdk.ParameterTypeBool,
-			Validations: []sdk.Validation{},
 		},
 		"url": {
 			Default:     "",

@@ -27,45 +27,55 @@ func TestConfig_ParseMTLSFiles(t *testing.T) {
 		{
 			name: "valid paths",
 			config: Config{
-				TLSClientCertPath: "./test/certs/client.crt",
-				TLSClientKeyPath:  "./test/certs/client.key",
-				TLSCACertPath:     "./test/certs/ca.crt",
+				MTLS: MTLSConfig{
+					ClientCertPath: "./test/certs/client.crt",
+					ClientKeyPath:  "./test/certs/client.key",
+					CACertPath:     "./test/certs/ca.crt",
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "empty values",
 			config: Config{
-				TLSClientCertPath: "",
-				TLSClientKeyPath:  "",
-				TLSCACertPath:     "",
+				MTLS: MTLSConfig{
+					ClientCertPath: "",
+					ClientKeyPath:  "",
+					CACertPath:     "",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid paths",
 			config: Config{
-				TLSClientCertPath: "not a file",
-				TLSClientKeyPath:  "not a file",
-				TLSCACertPath:     "not a file",
+				MTLS: MTLSConfig{
+					ClientCertPath: "not a file",
+					ClientKeyPath:  "not a file",
+					CACertPath:     "not a file",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "switched files",
 			config: Config{
-				TLSClientCertPath: "./test/certs/client.key", // switched with client crt
-				TLSClientKeyPath:  "./test/certs/client.crt",
-				TLSCACertPath:     "./test/certs/ca.crt",
+				MTLS: MTLSConfig{
+					ClientCertPath: "./test/certs/client.key", // switched with client crt
+					ClientKeyPath:  "./test/certs/client.crt",
+					CACertPath:     "./test/certs/ca.crt",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "wrong CA cert path",
 			config: Config{
-				TLSClientCertPath: "./test/certs/client.crt",
-				TLSClientKeyPath:  "./test/certs/client.key",
-				TLSCACertPath:     "./test/certs/ca.key", // key instead of crt, should fail
+				MTLS: MTLSConfig{
+					ClientCertPath: "./test/certs/client.crt",
+					ClientKeyPath:  "./test/certs/client.key",
+					CACertPath:     "./test/certs/ca.key", // key instead of crt, should fail
+				},
 			},
 			wantErr: true,
 		},
