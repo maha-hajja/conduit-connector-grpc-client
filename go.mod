@@ -9,7 +9,7 @@ require (
 	github.com/conduitio/conduit-connector-sdk v0.6.0
 	github.com/golang/mock v1.6.0
 	github.com/matryer/is v1.4.1
-	google.golang.org/grpc v1.56.0
+	google.golang.org/grpc v1.56.1
 	google.golang.org/protobuf v1.30.0
 )
 
