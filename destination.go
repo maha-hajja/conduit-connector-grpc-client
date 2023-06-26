@@ -74,8 +74,8 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
-	if !d.config.MTLS.Disable {
-		d.clientCert, d.caCertPool, err = d.config.ParseMTLSFiles()
+	if !d.config.MTLS.Disabled {
+		d.clientCert, d.caCertPool, err = d.config.MTLS.ParseMTLSFiles()
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func (d *Destination) Open(ctx context.Context) error {
 		dialOptions = append(dialOptions,
 			bwgrpc.WithBandwidthLimitedContextDialer(bwlimit.Byte(d.config.RateLimit), bwlimit.Byte(d.config.RateLimit), d.dialer))
 	}
-	if !d.config.MTLS.Disable {
+	if !d.config.MTLS.Disabled {
 		// create TLS credentials with mTLS configuration
 		creds := credentials.NewTLS(&tls.Config{
 			Certificates: []tls.Certificate{d.clientCert},

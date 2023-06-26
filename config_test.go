@@ -21,61 +21,51 @@ import (
 func TestConfig_ParseMTLSFiles(t *testing.T) {
 	testCases := []struct {
 		name    string
-		config  Config
+		config  MTLSConfig
 		wantErr bool
 	}{
 		{
 			name: "valid paths",
-			config: Config{
-				MTLS: MTLSConfig{
-					ClientCertPath: "./test/certs/client.crt",
-					ClientKeyPath:  "./test/certs/client.key",
-					CACertPath:     "./test/certs/ca.crt",
-				},
+			config: MTLSConfig{
+				ClientCertPath: "./test/certs/client.crt",
+				ClientKeyPath:  "./test/certs/client.key",
+				CACertPath:     "./test/certs/ca.crt",
 			},
 			wantErr: false,
 		},
 		{
 			name: "empty values",
-			config: Config{
-				MTLS: MTLSConfig{
-					ClientCertPath: "",
-					ClientKeyPath:  "",
-					CACertPath:     "",
-				},
+			config: MTLSConfig{
+				ClientCertPath: "",
+				ClientKeyPath:  "",
+				CACertPath:     "",
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid paths",
-			config: Config{
-				MTLS: MTLSConfig{
-					ClientCertPath: "not a file",
-					ClientKeyPath:  "not a file",
-					CACertPath:     "not a file",
-				},
+			config: MTLSConfig{
+				ClientCertPath: "not a file",
+				ClientKeyPath:  "not a file",
+				CACertPath:     "not a file",
 			},
 			wantErr: true,
 		},
 		{
 			name: "switched files",
-			config: Config{
-				MTLS: MTLSConfig{
-					ClientCertPath: "./test/certs/client.key", // switched with client crt
-					ClientKeyPath:  "./test/certs/client.crt",
-					CACertPath:     "./test/certs/ca.crt",
-				},
+			config: MTLSConfig{
+				ClientCertPath: "./test/certs/client.key", // switched with client crt
+				ClientKeyPath:  "./test/certs/client.crt",
+				CACertPath:     "./test/certs/ca.crt",
 			},
 			wantErr: true,
 		},
 		{
 			name: "wrong CA cert path",
-			config: Config{
-				MTLS: MTLSConfig{
-					ClientCertPath: "./test/certs/client.crt",
-					ClientKeyPath:  "./test/certs/client.key",
-					CACertPath:     "./test/certs/ca.key", // key instead of crt, should fail
-				},
+			config: MTLSConfig{
+				ClientCertPath: "./test/certs/client.crt",
+				ClientKeyPath:  "./test/certs/client.key",
+				CACertPath:     "./test/certs/ca.key", // key instead of crt, should fail
 			},
 			wantErr: true,
 		},

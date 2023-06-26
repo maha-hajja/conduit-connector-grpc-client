@@ -19,17 +19,17 @@ server, then waits for acknowledgments to be received from the server through th
 
 ### Configuration
 
-| name                   | description                                                                          | required                              | default value |
-|------------------------|--------------------------------------------------------------------------------------|---------------------------------------|---------------|
-| `url`                  | url to gRPC server.                                                                  | true                                  |               |
-| `rateLimit`            | the bandwidth limit in bytes/second, use `0` to disable rate limiting.               | false                                 | `0`           |
-| `mtls.disable`         | flag to disable mTLS secure connection, set it to `true` for an insecure connection. | false                                 | `false`       |
-| `mtls.client.certPath` | the client certificate path.                                                         | required if `mtls.disable` is `false` |               |
-| `mtls.client.keyPath`  | the client private key path.                                                         | required if `mtls.disable` is `false` |               |
-| `mtls.CA.certPath`     | the root CA certificate path.                                                        | required if `mtls.disable` is `false` |               |
+| name                   | description                                                                            | required                               | default value |
+|------------------------|----------------------------------------------------------------------------------------|----------------------------------------|---------------|
+| `url`                  | url to gRPC server.                                                                    | true                                   |               |
+| `rateLimit`            | the bandwidth limit in bytes/second, use `0` to disable rate limiting.                 | false                                  | `0`           |
+| `mtls.disabled`        | option to disable mTLS secure connection, set it to `true` for an insecure connection. | false                                  | `false`       |
+| `mtls.client.certPath` | the client certificate path.                                                           | required if `mtls.disabled` is `false` |               |
+| `mtls.client.keyPath`  | the client private key path.                                                           | required if `mtls.disabled` is `false` |               |
+| `mtls.ca.certPath`     | the root CA certificate path.                                                          | required if `mtls.disabled` is `false` |               |
 
 ## Mutual TLS (mTLS)
-Mutual TLS is used by default to connect to the server, to disable mTLS you can set the parameter `mtls.disable`
+Mutual TLS is used by default to connect to the server, to disable mTLS you can set the parameter `mtls.disabled`
 to `true`, this will result in an insecure connection to the server.
 
 This repo contains self-signed certificates that can be used for local testing purposes, you can find them

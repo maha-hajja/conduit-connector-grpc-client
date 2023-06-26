@@ -79,15 +79,15 @@ func TestConfigure_DisableMTLS(t *testing.T) {
 	dest := NewDestination()
 	err := dest.Configure(ctx, map[string]string{
 		"url":                  "localhost",
-		"mtls.disable":         "false",
+		"mtls.disabled":        "false",
 		"mtls.client.certPath": "", // empty path, should fail
 		"mtls.client.keyPath":  clientKeyPath,
-		"mtls.CA.certPath":     caCertPath,
+		"mtls.ca.certPath":     caCertPath,
 	})
 	is.True(err != nil)
 	err = dest.Configure(ctx, map[string]string{
 		"url":                  "localhost",
-		"mtls.disable":         "true", // disabled
+		"mtls.disabled":        "true", // disabled
 		"mtls.client.certPath": "",     // should be ok
 	})
 	is.NoErr(err)
@@ -119,7 +119,7 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 		"url":                  "localhost",
 		"mtls.client.certPath": clientCertPath,
 		"mtls.client.keyPath":  clientKeyPath,
-		"mtls.CA.certPath":     caCertPath,
+		"mtls.ca.certPath":     caCertPath,
 	})
 	is.NoErr(err)
 	err = dest.Open(ctx)
