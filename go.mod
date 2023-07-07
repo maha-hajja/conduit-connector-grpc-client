@@ -10,7 +10,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/matryer/is v1.4.1
 	go.uber.org/multierr v1.11.0
-	google.golang.org/grpc v1.56.1
+	google.golang.org/grpc v1.56.2
 	google.golang.org/protobuf v1.31.0
 )
 
