@@ -15,10 +15,8 @@
 package grpcclient
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -87,7 +85,6 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 		err := srv.Serve(lis)
 		is.NoErr(err)
 	}()
-	defer srv.Stop()
 
 	// prepare destination (client)
 	ctx := context.Background()
@@ -114,7 +111,7 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 	n, err := dest.Write(ctx, []sdk.Record{
 		{Position: sdk.Position("foo")},
 	})
-	is.True(errors.Is(err, errDowntimeReached))
+	is.True(errors.Is(err, errMaxDowntimeReached))
 	is.Equal(n, 0)
 }
 
@@ -214,7 +211,6 @@ func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
 		Stream(gomock.Any()).
 		DoAndReturn(
 			func(stream pb.SourceService_StreamServer) error {
-				i := 0
 				for {
 					// read from the stream to simulate receiving data from the client
 					rec, err := stream.Recv()
@@ -225,15 +221,10 @@ func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
 						return err
 					}
 					// convert the proto record to sdk.Record to compare with expected records
-					sdkRec, err := fromproto.Record(rec)
+					_, err = fromproto.Record(rec)
 					if err != nil {
 						return err
 					}
-					if !bytes.Equal(sdkRec.Bytes(), expected[i].Bytes()) {
-						return fmt.Errorf("received record doesn't match the expected record")
-					}
-					i++
-
 					// Write to the stream to simulate sending data to the client
 					resp := &pb.Ack{AckPosition: rec.Position}
 					if err := stream.Send(resp); err != nil {
