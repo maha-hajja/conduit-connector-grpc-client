@@ -17,34 +17,29 @@ package grpcclient
 //go:generate paramgen -output=paramgen_dest.go DestConfig
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io"
-	"net"
-	"time"
-
-	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
 	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
 	"github.com/conduitio/bwlimit"
 	"github.com/conduitio/bwlimit/bwgrpc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"gopkg.in/tomb.v2"
+	"io"
+	"net"
 )
 
 type Destination struct {
 	sdk.UnimplementedDestination
 
-	config       Config
+	config       DestConfig
 	conn         *grpc.ClientConn
 	index        uint32
 	expectedAcks []sdk.Position
@@ -96,7 +91,6 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 func (d *Destination) Open(ctx context.Context) error {
 	dialOptions := []grpc.DialOption{
 		grpc.WithContextDialer(d.dialer),
-		grpc.WithTransportCredentials(insecure.NewCredentials()), // todo: will use mTLS with connection
 		grpc.WithBlock(),
 		grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.DefaultConfig}),
 	}
@@ -115,7 +109,7 @@ func (d *Destination) Open(ctx context.Context) error {
 	} else {
 		dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	ctxTimeout, cancel := context.WithTimeout(ctx, time.Minute) // time.Minute is temporary until backoff retries is merged
+	ctxTimeout, cancel := context.WithTimeout(ctx, d.config.MaxDowntime)
 	defer cancel()
 	conn, err := grpc.DialContext(ctxTimeout,
 		d.config.URL,

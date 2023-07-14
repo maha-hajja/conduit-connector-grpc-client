@@ -15,11 +15,9 @@
 package grpcclient
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"errors"
 	"io"
 	"log"
@@ -128,6 +126,7 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 		"rateLimit":      "0",
 		"maxDowntime":    "500ms",
 		"reconnectDelay": "200ms",
+		"mtls.disabled":  "true",
 	})
 	is.NoErr(err)
 	// Open will start monitoring connection status
@@ -176,6 +175,7 @@ func TestBackoffRetry_Reconnect(t *testing.T) {
 		"rateLimit":      "0",
 		"maxDowntime":    "5s",
 		"reconnectDelay": "200ms",
+		"mtls.disabled":  "true",
 	})
 	is.NoErr(err)
 	// Open will start monitoring connection status
@@ -193,7 +193,7 @@ func TestBackoffRetry_Reconnect(t *testing.T) {
 	lisMutex.Lock()
 	lis = bufconn.Listen(1024 * 1024)
 	lisMutex.Unlock()
-	startTestServer(t, lis, records)
+	startTestServer(t, lis, false, records)
 	// reconnection will succeed
 	time.Sleep(500 * time.Millisecond)
 	// write records normally
@@ -217,19 +217,13 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	ctx := context.Background()
 	dest := NewDestinationWithDialer(dialer)
 	err := dest.Configure(ctx, map[string]string{
-		"url":             "localhost",
-		"mtls.client.certPath": clientCertPath,
-		"mtls.client.keyPath":  clientKeyPath,
-		"mtls.ca.certPath":     caCertPath,
-		"rateLimit":      "0",
-		"maxDowntime":    "1m",
-		"reconnectDelay": "10s",
-	})
-	err := dest.Configure(ctx, map[string]string{
 		"url":                  "localhost",
 		"mtls.client.certPath": clientCertPath,
 		"mtls.client.keyPath":  clientKeyPath,
 		"mtls.ca.certPath":     caCertPath,
+		"rateLimit":            "0",
+		"maxDowntime":          "1m",
+		"reconnectDelay":       "10s",
 	})
 	is.NoErr(err)
 	err = dest.Open(ctx)
