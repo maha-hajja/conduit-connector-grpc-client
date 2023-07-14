@@ -15,11 +15,16 @@
 package grpcclient
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"errors"
 	"io"
 	"log"
 	"net"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -30,6 +35,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/matryer/is"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -54,10 +60,38 @@ var records = []sdk.Record{
 	},
 }
 
+const (
+	clientCertPath = "./test/certs/client.crt"
+	clientKeyPath  = "./test/certs/client.key"
+	serverCertPath = "./test/certs/server.crt"
+	serverKeyPath  = "./test/certs/server.key"
+	caCertPath     = "./test/certs/ca.crt"
+)
+
 func TestTeardown_NoOpen(t *testing.T) {
 	is := is.New(t)
 	con := NewDestination()
 	err := con.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func TestConfigure_DisableMTLS(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dest := NewDestination()
+	err := dest.Configure(ctx, map[string]string{
+		"url":                  "localhost",
+		"mtls.disabled":        "false",
+		"mtls.client.certPath": "", // empty path, should fail
+		"mtls.client.keyPath":  clientKeyPath,
+		"mtls.ca.certPath":     caCertPath,
+	})
+	is.True(err != nil)
+	err = dest.Configure(ctx, map[string]string{
+		"url":                  "localhost",
+		"mtls.disabled":        "true", // disabled
+		"mtls.client.certPath": "",     // should be ok
+	})
 	is.NoErr(err)
 }
 
@@ -177,16 +211,25 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	}
 
 	// prepare server
-	startTestServer(t, lis, expected)
+	startTestServer(t, lis, true, expected)
 
 	// prepare destination (client)
 	ctx := context.Background()
 	dest := NewDestinationWithDialer(dialer)
 	err := dest.Configure(ctx, map[string]string{
-		"url":            "bufnet",
+		"url":             "localhost",
+		"mtls.client.certPath": clientCertPath,
+		"mtls.client.keyPath":  clientKeyPath,
+		"mtls.ca.certPath":     caCertPath,
 		"rateLimit":      "0",
 		"maxDowntime":    "1m",
 		"reconnectDelay": "10s",
+	})
+	err := dest.Configure(ctx, map[string]string{
+		"url":                  "localhost",
+		"mtls.client.certPath": clientCertPath,
+		"mtls.client.keyPath":  clientKeyPath,
+		"mtls.ca.certPath":     caCertPath,
 	})
 	is.NoErr(err)
 	err = dest.Open(ctx)
@@ -201,9 +244,28 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	return dest, ctx
 }
 
-func startTestServer(t *testing.T, lis net.Listener, expected []sdk.Record) {
+func startTestServer(t *testing.T, lis net.Listener, enableMTLS bool, expected []sdk.Record) {
+	is := is.New(t)
 	ctrl := gomock.NewController(t)
-	srv := grpc.NewServer()
+	serverOptions := make([]grpc.ServerOption, 0, 1)
+	if enableMTLS {
+		serverCert, err := tls.LoadX509KeyPair(serverCertPath, serverKeyPath)
+		is.NoErr(err)
+		caCert, err := os.ReadFile(caCertPath)
+		is.NoErr(err)
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		// create TLS credentials with mTLS configuration
+		creds := credentials.NewTLS(&tls.Config{
+			Certificates: []tls.Certificate{serverCert},
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    caCertPool,
+			MinVersion:   tls.VersionTLS13,
+		})
+		serverOptions = append(serverOptions, grpc.Creds(creds))
+	}
+	srv := grpc.NewServer(serverOptions...)
 
 	// create and register simple mock server
 	mockServer := pb.NewMockSourceServiceServer(ctrl)
