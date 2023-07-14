@@ -21,6 +21,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
+	"net"
+
 	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
 	"github.com/conduitio/bwlimit"
 	"github.com/conduitio/bwlimit/bwgrpc"
@@ -32,8 +35,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"gopkg.in/tomb.v2"
-	"io"
-	"net"
 )
 
 type Destination struct {
