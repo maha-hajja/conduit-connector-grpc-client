@@ -40,11 +40,10 @@ import (
 type Destination struct {
 	sdk.UnimplementedDestination
 
-	config       DestConfig
-	conn         *grpc.ClientConn
-	index        uint32
-	expectedAcks []sdk.Position
-	t            *tomb.Tomb
+	config DestConfig
+	conn   *grpc.ClientConn
+	index  uint32
+	t      *tomb.Tomb
 
 	sm *StreamManager
 	am *AckManager
@@ -139,11 +138,11 @@ func (d *Destination) Open(ctx context.Context) error {
 }
 
 func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
-	d.expectedAcks = make([]sdk.Position, 0, len(records))
+	expectedAcks := make([]sdk.Position, 0, len(records))
 	for _, r := range records {
-		d.expectedAcks = append(d.expectedAcks, r.Position)
+		expectedAcks = append(expectedAcks, r.Position)
 	}
-	err := d.am.Expect(d.expectedAcks)
+	err := d.am.Expect(expectedAcks)
 	if err != nil {
 		return 0, err
 	}
