@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"sync"
 
 	sdk "github.com/conduitio/conduit-connector-sdk"
@@ -120,6 +121,7 @@ func (am *AckManager) recvAcks(ctx context.Context) error {
 		pos := ToRecordPosition(ack.AckPosition)
 		err = am.validateAck(pos)
 		if err != nil {
+			am.m.Unlock()
 			return err
 		}
 		// update the map and the number of unique acks received
@@ -145,10 +147,10 @@ func (am *AckManager) recvAcks(ctx context.Context) error {
 
 func (am *AckManager) validateAck(pos Position) error {
 	if len(am.expected) == 0 {
-		return fmt.Errorf("expected records need to be set")
+		return fmt.Errorf("expected acks need to be set, call the method Expect([]sdk.Position) to set them after calling Run()")
 	}
 	if _, ok := am.received[string(pos.Original)]; !ok {
-		return fmt.Errorf("recieved an unexpeted ack: %s", string(pos.Original))
+		return fmt.Errorf("recieved an unexpected ack: %s", string(pos.Original))
 	}
 	// check that no acks were skipped
 	for _, p := range am.expected {
@@ -156,8 +158,13 @@ func (am *AckManager) validateAck(pos Position) error {
 			break
 		}
 		if !am.received[string(p)] {
-			return fmt.Errorf("acks recieved out of order")
+			return fmt.Errorf("acks recieved out of order, skipped ack: %s", string(p))
 		}
+	}
+	// to handle the uint32 overflow case, if the last index we received is in the interval [MaxUint32-100, mMxUint32]
+	// then we allow the received index to be in the interval [0-100]
+	if am.lastIndex >= math.MaxUint32-100 && pos.Index <= 100 {
+		return nil
 	}
 	// check that index is increasing
 	if pos.Index < am.lastIndex {

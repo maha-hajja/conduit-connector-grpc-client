@@ -134,7 +134,7 @@ func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, err
 	}
 	got := 0
 	for {
-		err = d.sendRecords(ctx, got, records)
+		err = d.sendRecords(ctx, records[got:])
 		if err == io.EOF || status.Code(err) == codes.Unavailable {
 			got = d.am.Got()
 			continue
@@ -143,7 +143,9 @@ func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, err
 		}
 		got, err = d.am.Wait(ctx)
 		if err == io.EOF {
-			// connection dropped, stream received interrupted
+			// this error indicates that connection to the sever was lost, and the stream is closed.
+			// connector should continue, and will encounter `d.sendRecords` which tries to get a stream, and will
+			// block until one is available.
 			continue
 		} else if err != nil {
 			return got, err
@@ -152,13 +154,12 @@ func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, err
 	}
 }
 
-func (d *Destination) sendRecords(ctx context.Context, startFrom int, records []sdk.Record) error {
+func (d *Destination) sendRecords(ctx context.Context, records []sdk.Record) error {
 	stream, err := d.sm.Get(ctx)
 	if err != nil {
 		return err
 	}
-	for i := startFrom; i < len(records); i++ {
-		r := records[i]
+	for _, r := range records {
 		r.Position = AttachPositionIndex(r.Position, d.index)
 		d.index++
 		record, err := toproto.Record(r)
