@@ -9,6 +9,12 @@ import (
 
 func (DestConfig) Parameters() map[string]sdk.Parameter {
 	return map[string]sdk.Parameter{
+		"maxDowntime": {
+			Default:     "10m",
+			Description: "max downtime accepted for the server to be off.",
+			Type:        sdk.ParameterTypeDuration,
+			Validations: []sdk.Validation{},
+		},
 		"mtls.ca.certPath": {
 			Default:     "",
 			Description: "the root CA certificate path.",
@@ -40,6 +46,12 @@ func (DestConfig) Parameters() map[string]sdk.Parameter {
 			Validations: []sdk.Validation{
 				sdk.ValidationGreaterThan{Value: -1},
 			},
+		},
+		"reconnectDelay": {
+			Default:     "5s",
+			Description: "delay between each gRPC request retry.",
+			Type:        sdk.ParameterTypeDuration,
+			Validations: []sdk.Validation{},
 		},
 		"url": {
 			Default:     "",

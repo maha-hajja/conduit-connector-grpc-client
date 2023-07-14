@@ -23,6 +23,8 @@ server, then waits for acknowledgments to be received from the server through th
 |------------------------|----------------------------------------------------------------------------------------|----------------------------------------|---------------|
 | `url`                  | url to gRPC server.                                                                    | true                                   |               |
 | `rateLimit`            | the bandwidth limit in bytes/second, use `0` to disable rate limiting.                 | false                                  | `0`           |
+| `reconnectDelay`       | delay between each gRPC request retry.                                                 | false                                  | `5s`          |
+| `maxDowntime`          | max downtime accepted for the server to be off.                                        | false                                  | `10m`         |
 | `mtls.disabled`        | option to disable mTLS secure connection, set it to `true` for an insecure connection. | false                                  | `false`       |
 | `mtls.client.certPath` | the client certificate path.                                                           | required if `mtls.disabled` is `false` |               |
 | `mtls.client.keyPath`  | the client private key path.                                                           | required if `mtls.disabled` is `false` |               |

@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"go.uber.org/multierr"
@@ -31,6 +32,10 @@ type Config struct {
 	URL string `json:"url" validate:"required"`
 	// the bandwidth limit in bytes/second, use "0" to disable rate limiting.
 	RateLimit int `json:"rateLimit" default:"0" validate:"gt=-1"`
+	// delay between each gRPC request retry.
+	ReconnectDelay time.Duration `json:"reconnectDelay" default:"5s"`
+	// max downtime accepted for the server to be off.
+	MaxDowntime time.Duration `json:"maxDowntime" default:"10m"`
 	// mTLS configurations.
 	MTLS MTLSConfig `json:"mtls"`
 }

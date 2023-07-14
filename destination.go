@@ -17,23 +17,24 @@ package grpcclient
 //go:generate paramgen -output=paramgen_dest.go DestConfig
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
-	"time"
 
-	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
 	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
 	"github.com/conduitio/bwlimit"
 	"github.com/conduitio/bwlimit/bwgrpc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
+	"gopkg.in/tomb.v2"
 )
 
 type Destination struct {
@@ -41,7 +42,11 @@ type Destination struct {
 
 	config DestConfig
 	conn   *grpc.ClientConn
-	stream pb.SourceService_StreamClient
+	index  uint32
+	t      *tomb.Tomb
+
+	sm *StreamManager
+	am *AckManager
 
 	// mTLS
 	clientCert tls.Certificate
@@ -87,6 +92,7 @@ func (d *Destination) Open(ctx context.Context) error {
 	dialOptions := []grpc.DialOption{
 		grpc.WithContextDialer(d.dialer),
 		grpc.WithBlock(),
+		grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.DefaultConfig}),
 	}
 	if d.config.RateLimit > 0 {
 		dialOptions = append(dialOptions,
@@ -103,7 +109,7 @@ func (d *Destination) Open(ctx context.Context) error {
 	} else {
 		dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	ctxTimeout, cancel := context.WithTimeout(ctx, time.Minute) // time.Minute is temporary until backoff retries is merged
+	ctxTimeout, cancel := context.WithTimeout(ctx, d.config.MaxDowntime)
 	defer cancel()
 	conn, err := grpc.DialContext(ctxTimeout,
 		d.config.URL,
@@ -114,54 +120,82 @@ func (d *Destination) Open(ctx context.Context) error {
 	}
 	d.conn = conn
 
-	// create the client
-	client := pb.NewSourceServiceClient(conn)
-	// call the Stream method to create a bidirectional streaming RPC stream
-	d.stream, err = client.Stream(ctx)
+	d.sm, err = NewStreamManager(ctx, conn, d.config.ReconnectDelay, d.config.MaxDowntime)
 	if err != nil {
-		return fmt.Errorf("failed to create a bidirectional stream: %w", err)
+		return err
 	}
+	d.am = NewAckManager(d.sm)
+
+	d.t, ctx = tomb.WithContext(ctx)
+	d.t.Go(func() error {
+		return d.sm.Run(ctx)
+	})
+	d.t.Go(func() error {
+		return d.am.Run(ctx)
+	})
+
 	return nil
 }
 
 func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
+	expectedAcks := make([]sdk.Position, 0, len(records))
 	for _, r := range records {
+		expectedAcks = append(expectedAcks, r.Position)
+	}
+	err := d.am.Expect(expectedAcks)
+	if err != nil {
+		return 0, err
+	}
+	got := 0
+	for {
+		err = d.sendRecords(ctx, records[got:])
+		if err == io.EOF || status.Code(err) == codes.Unavailable {
+			got = d.am.Got()
+			continue
+		} else if err != nil {
+			return d.am.Got(), err
+		}
+		got, err = d.am.Wait(ctx)
+		if err == io.EOF {
+			// this error indicates that connection to the sever was lost, and the stream is closed.
+			// connector should continue, and will encounter `d.sendRecords` which tries to get a stream, and will
+			// block until one is available.
+			continue
+		} else if err != nil {
+			return got, err
+		}
+		return len(records), nil
+	}
+}
+
+func (d *Destination) sendRecords(ctx context.Context, records []sdk.Record) error {
+	stream, err := d.sm.Get(ctx)
+	if err != nil {
+		return err
+	}
+	for _, r := range records {
+		r.Position = AttachPositionIndex(r.Position, d.index)
+		d.index++
 		record, err := toproto.Record(r)
 		if err != nil {
-			return 0, err
+			return err
 		}
-		// todo: backoff retries until connection is reestablished and create a new stream
-		err = d.stream.Send(record)
-		if err == io.EOF {
-			return 0, fmt.Errorf("stream was closed: %w", err)
-		}
+		err = stream.Send(record)
 		if err != nil {
-			return 0, fmt.Errorf("failed to send record: %w", err)
+			return err
 		}
 	}
-	// todo: go routine for receiving acks
-	for i := range records {
-		// block until ack is received
-		ack, err := d.stream.Recv()
-		if err == io.EOF {
-			return i, fmt.Errorf("stream was closed: %w", err)
-		}
-		if err != nil {
-			return i, fmt.Errorf("failed to receive ack: %w", err)
-		}
-		if !bytes.Equal(ack.AckPosition, records[i].Position) {
-			return i, fmt.Errorf("unexpected ack, got: %v, want: %v", ack.AckPosition, records[i].Position)
-		}
-		sdk.Logger(ctx).Trace().Bytes("position", ack.AckPosition).Msg("ack received")
-	}
-	return len(records), nil
+	return nil
 }
 
 func (d *Destination) Teardown(ctx context.Context) error {
-	if d.stream != nil {
-		err := d.stream.CloseSend()
-		if err != nil {
-			return err
+	if d.sm != nil {
+		stream, _ := d.sm.Get(ctx)
+		if stream != nil {
+			err := stream.CloseSend()
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if d.conn != nil {
@@ -169,6 +203,10 @@ func (d *Destination) Teardown(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+	if d.t != nil {
+		d.t.Kill(nil)
+		_ = d.t.Wait()
 	}
 	return nil
 }
