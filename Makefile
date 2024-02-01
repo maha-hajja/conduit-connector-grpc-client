@@ -1,4 +1,4 @@
-.PHONY: build test test-integration generate install-paramgen proto-generate generate-certs
+.PHONY: build test test-integration generate proto-generate generate-certs
 
 VERSION=$(shell git describe --tags --dirty --always)
 
@@ -10,9 +10,6 @@ test:
 
 generate:
 	go generate ./...
-
-install-paramgen:
-	go install github.com/conduitio/conduit-connector-sdk/cmd/paramgen@latest
 
 proto-generate:
 	cd proto && buf generate
