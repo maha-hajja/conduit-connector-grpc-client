@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	v1 "github.com/conduitio/conduit-connector-protocol/proto/opencdc/v1"
+	opencdcv1 "github.com/conduitio/conduit-connector-protocol/proto/opencdc/v1"
 	gomock "go.uber.org/mock/gomock"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
@@ -158,7 +158,7 @@ func (mr *MockSourceService_StreamClientMockRecorder) RecvMsg(m any) *gomock.Cal
 }
 
 // Send mocks base method.
-func (m *MockSourceService_StreamClient) Send(arg0 *v1.Record) error {
+func (m *MockSourceService_StreamClient) Send(arg0 *opencdcv1.Record) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0)
 	ret0, _ := ret[0].(error)
@@ -321,10 +321,10 @@ func (mr *MockSourceService_StreamServerMockRecorder) Context() *gomock.Call {
 }
 
 // Recv mocks base method.
-func (m *MockSourceService_StreamServer) Recv() (*v1.Record, error) {
+func (m *MockSourceService_StreamServer) Recv() (*opencdcv1.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
-	ret0, _ := ret[0].(*v1.Record)
+	ret0, _ := ret[0].(*opencdcv1.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
