@@ -17,6 +17,8 @@
 package grpcclient
 
 import (
+	_ "github.com/bufbuild/buf/cmd/buf"
 	_ "github.com/conduitio/conduit-connector-sdk/cmd/paramgen"
-	_ "github.com/golang/mock/mockgen"
+	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "go.uber.org/mock/mockgen"
 )
