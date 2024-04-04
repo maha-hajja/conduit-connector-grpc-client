@@ -122,7 +122,7 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 	ctx := context.Background()
 	dest := NewDestinationWithDialer(dialer)
 	err := dest.Configure(ctx, map[string]string{
-		"url":            "bufnet",
+		"url":            "passthrough://bufnet",
 		"rateLimit":      "0",
 		"maxDowntime":    "500ms",
 		"reconnectDelay": "200ms",
@@ -171,7 +171,7 @@ func TestBackoffRetry_Reconnect(t *testing.T) {
 	ctx := context.Background()
 	dest := NewDestinationWithDialer(dialer)
 	err := dest.Configure(ctx, map[string]string{
-		"url":            "bufnet",
+		"url":            "passthrough://bufnet",
 		"rateLimit":      "0",
 		"maxDowntime":    "5s",
 		"reconnectDelay": "200ms",

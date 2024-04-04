@@ -31,6 +31,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
@@ -91,7 +92,6 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 func (d *Destination) Open(ctx context.Context) error {
 	dialOptions := []grpc.DialOption{
 		grpc.WithContextDialer(d.dialer),
-		grpc.WithBlock(),
 		grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.DefaultConfig}),
 	}
 	if d.config.RateLimit > 0 {
@@ -109,16 +109,29 @@ func (d *Destination) Open(ctx context.Context) error {
 	} else {
 		dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	ctxTimeout, cancel := context.WithTimeout(ctx, d.config.MaxDowntime)
-	defer cancel()
-	conn, err := grpc.DialContext(ctxTimeout,
-		d.config.URL,
-		dialOptions...,
-	)
+	conn, err := grpc.NewClient(d.config.URL, dialOptions...)
 	if err != nil {
-		return fmt.Errorf("failed to dial server: %w", err)
+		return fmt.Errorf("failed to create grpc client: %w", err)
 	}
 	d.conn = conn
+
+	// Block until conn is ready.
+	conn.Connect()
+	ctxTimeout, cancel := context.WithTimeout(ctx, d.config.MaxDowntime)
+	defer cancel()
+	for {
+		s := conn.GetState()
+		if s == connectivity.Idle {
+			conn.Connect()
+		}
+		if s == connectivity.Ready {
+			break // connection is ready
+		}
+		if !conn.WaitForStateChange(ctxTimeout, s) {
+			// ctx got timeout or canceled.
+			return fmt.Errorf("failed to connect to server in time (state: %s)", s)
+		}
+	}
 
 	d.sm, err = NewStreamManager(ctx, conn, d.config.ReconnectDelay, d.config.MaxDowntime)
 	if err != nil {
