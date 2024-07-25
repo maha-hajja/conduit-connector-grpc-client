@@ -3,7 +3,7 @@ module github.com/conduitio-labs/conduit-connector-grpc-client
 go 1.21
 
 require (
-	github.com/bufbuild/buf v1.35.0
+	github.com/bufbuild/buf v1.35.1
 	github.com/conduitio/bwlimit v0.1.0
 	github.com/conduitio/bwlimit/bwgrpc v0.1.0
 	github.com/conduitio/conduit-connector-protocol v0.5.0
