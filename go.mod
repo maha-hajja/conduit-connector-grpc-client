@@ -1,7 +1,6 @@
 module github.com/conduitio-labs/conduit-connector-grpc-client
 
-go 1.21
-toolchain go1.22.5
+go 1.23.1
 
 require (
 	github.com/bufbuild/buf v1.36.0
