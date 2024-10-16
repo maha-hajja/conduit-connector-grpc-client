@@ -43,7 +43,7 @@ func Record(in sdk.Record) (*opencdcv1.Record, error) {
 
 	out := &opencdcv1.Record{
 		Position:  in.Position,
-		Operation: opencdcv1.Operation(in.Operation),
+		Operation: opencdcv1.Operation(in.Operation), //nolint:gosec // no risk of overflow
 		Metadata:  in.Metadata,
 		Key:       key,
 		Payload:   payload,
