@@ -10,7 +10,7 @@ require (
 	github.com/conduitio/conduit-connector-sdk v0.8.0
 	github.com/golangci/golangci-lint v1.61.0
 	github.com/matryer/is v1.4.1
-	go.uber.org/mock v0.4.0
+	go.uber.org/mock v0.5.0
 	go.uber.org/multierr v1.11.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
