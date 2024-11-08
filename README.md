@@ -1,18 +1,21 @@
 # Conduit Connector for gRPC Client
+
 The gRPC Client connector is one of [Conduit](https://conduit.io) plugins. It provides a destination gRPC Client connector.
 
 This connector should be paired with another Conduit instance or pipeline, that provides a 
 [gRPC server source](https://github.com/conduitio-labs/conduit-connector-grpc-server). Where the client will initiate
 the connection with the server, and start sending records to it.
 
-
 ## How to build?
+
 Run `make build` to build the connector.
 
 ## Testing
+
 Run `make test` to run all the unit tests.
 
 ## Destination
+
 A client gRPC destination connector initiates connection with a gRPC server using the `url` provided as
 a parameter. It creates a bidirectional stream with the server and uses the stream to write records to the
 server, then waits for acknowledgments to be received from the server through the same stream.
@@ -31,6 +34,7 @@ server, then waits for acknowledgments to be received from the server through th
 | `mtls.ca.certPath`     | the root CA certificate path.                                                          | required if `mtls.disabled` is `false` |               |
 
 ## Mutual TLS (mTLS)
+
 Mutual TLS is used by default to connect to the server, to disable mTLS you can set the parameter `mtls.disabled`
 to `true`, this will result in an insecure connection to the server.
 
@@ -41,4 +45,5 @@ To generate your own secure mTLS certificates, check
 [this tutorial](https://medium.com/weekly-webtips/how-to-generate-keys-for-mutual-tls-authentication-a90f53bcec64).
 
 ## Planned work
+
 - Add a source for gRPC client. 
