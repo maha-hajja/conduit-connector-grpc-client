@@ -22,6 +22,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,7 +31,7 @@ import (
 type AckManager struct {
 	sm *StreamManager
 
-	expected  []sdk.Position
+	expected  []opencdc.Position
 	received  map[string]bool
 	m         sync.Mutex    // guards access to expected and received
 	batchDone chan struct{} // this channel is closed when the whole batch acks are received
@@ -55,7 +56,7 @@ func (am *AckManager) Run(ctx context.Context) error {
 // If there are still open acks to be received from the previous batch,
 // Expect returns an error.
 // has to be called after Run and before Wait.
-func (am *AckManager) Expect(expected []sdk.Position) error {
+func (am *AckManager) Expect(expected []opencdc.Position) error {
 	am.m.Lock()
 	defer am.m.Unlock()
 	got := am.got
@@ -147,7 +148,7 @@ func (am *AckManager) recvAcks(ctx context.Context) error {
 
 func (am *AckManager) validateAck(pos Position) error {
 	if len(am.expected) == 0 {
-		return fmt.Errorf("expected acks need to be set, call the method Expect([]sdk.Position) to set them after calling Run()")
+		return fmt.Errorf("expected acks need to be set, call the method Expect([]opencdc.Position) to set them after calling Run()")
 	}
 	if _, ok := am.received[string(pos.Original)]; !ok {
 		return fmt.Errorf("recieved an unexpected ack: %s", string(pos.Original))

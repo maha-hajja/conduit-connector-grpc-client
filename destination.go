@@ -27,6 +27,8 @@ import (
 	"github.com/conduitio-labs/conduit-connector-grpc-client/toproto"
 	"github.com/conduitio/bwlimit"
 	"github.com/conduitio/bwlimit/bwgrpc"
+	"github.com/conduitio/conduit-commons/config"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
@@ -70,16 +72,17 @@ func NewDestination() sdk.Destination {
 	return sdk.DestinationWithMiddleware(&Destination{}, sdk.DefaultDestinationMiddleware()...)
 }
 
-func (d *Destination) Parameters() map[string]sdk.Parameter {
+func (d *Destination) Parameters() config.Parameters {
 	return d.config.Parameters()
 }
 
-func (d *Destination) Configure(ctx context.Context, cfg map[string]string) error {
+func (d *Destination) Configure(ctx context.Context, cfg config.Config) error {
 	sdk.Logger(ctx).Info().Msg("Configuring Destination...")
-	err := sdk.Util.ParseConfig(cfg, &d.config)
+	err := sdk.Util.ParseConfig(ctx, cfg, &d.config, NewDestination().Parameters())
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
+
 	if !d.config.MTLS.Disabled {
 		d.clientCert, d.caCertPool, err = d.config.MTLS.ParseMTLSFiles()
 		if err != nil {
@@ -150,8 +153,8 @@ func (d *Destination) Open(ctx context.Context) error {
 	return nil
 }
 
-func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
-	expectedAcks := make([]sdk.Position, 0, len(records))
+func (d *Destination) Write(ctx context.Context, records []opencdc.Record) (int, error) {
+	expectedAcks := make([]opencdc.Position, 0, len(records))
 	for _, r := range records {
 		expectedAcks = append(expectedAcks, r.Position)
 	}
@@ -181,7 +184,7 @@ func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, err
 	}
 }
 
-func (d *Destination) sendRecords(ctx context.Context, records []sdk.Record) error {
+func (d *Destination) sendRecords(ctx context.Context, records []opencdc.Record) error {
 	stream, err := d.sm.Get(ctx)
 	if err != nil {
 		return err

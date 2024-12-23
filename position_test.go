@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"testing"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
 )
 
@@ -27,7 +27,7 @@ func TestPosition_ToSDKPosition(t *testing.T) {
 		name    string
 		wantErr bool
 		in      Position
-		out     sdk.Position
+		out     opencdc.Position
 	}{
 		{
 			name:    "zero position",
