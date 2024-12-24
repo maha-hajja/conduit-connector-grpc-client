@@ -1,16 +1,25 @@
+run:
+  timeout: 5m
+
 linters-settings:
-  gofmt:
-    simplify: false
-  govet:
-    check-shadowing: false
   nolintlint:
     allow-unused: false # report any unused nolint directives
     require-explanation: true # require an explanation for nolint directives
     require-specific: true # require nolint directives to mention the specific linter being suppressed
-  gocyclo:
-    min-complexity: 20
   goconst:
     ignore-tests: true
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - errors.Join(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .WithStack(
+      - (context.Context).Err()
   goheader:
     template-path: '.golangci.goheader.template'
     values:
@@ -28,21 +37,21 @@ linters:
     - durationcheck
     - errcheck
     - errname
-    # - errorlint
-    # - exhaustive
+    - errorlint
+    - exhaustive
     # - exhaustivestruct
     - copyloopvar
     # - forbidigo
-    # - forcetypeassert
-    # - funlen
-    # - gochecknoinits
+    - forcetypeassert
+    - funlen
+    - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
     # - cyclop # not interested in package complexities at the moment
-    # - godot
+    - godot
     - gofmt
-    # - gofumpt
+    - gofumpt
     - goheader
     - goimports
     # - revive # lots of unused parameters in the template, would be helpful for the user to keep them
@@ -55,31 +64,31 @@ linters:
     - govet
     # - ifshort
     - ineffassign
-    # - importas
+    - importas
     # - lll
-    # - misspell
+    - misspell
     - makezero
-    # - nakedret
-    # - nilerr
-    # - nilnil
+    - nakedret
+    - nilerr
+    - nilnil
     # - nlreturn
     - noctx
     - nolintlint
     # - paralleltest
     - predeclared
-    # - rowserrcheck
+    - rowserrcheck
     - staticcheck
     - stylecheck
-    # - sqlclosecheck
+    - sqlclosecheck
     # - tagliatelle
-    # - tenv
-    # - thelper
+    - tenv
+    - thelper
     # - tparallel
     - typecheck
     - unconvert
-    # - unparam
+    - unparam
     - unused
-    # - wastedassign
+    - wastedassign
     - whitespace
-    # - wrapcheck
+    - wrapcheck
     # - wsl
