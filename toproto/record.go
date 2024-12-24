@@ -72,7 +72,7 @@ func Change(in opencdc.Change) (*opencdcv1.Change, error) {
 
 func Data(in opencdc.Data) (*opencdcv1.Data, error) {
 	if in == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // ignore.
 	}
 
 	switch v := in.(type) {

@@ -151,7 +151,7 @@ func (am *AckManager) validateAck(pos Position) error {
 		return fmt.Errorf("expected acks need to be set, call the method Expect([]opencdc.Position) to set them after calling Run()")
 	}
 	if _, ok := am.received[string(pos.Original)]; !ok {
-		return fmt.Errorf("recieved an unexpected ack: %s", string(pos.Original))
+		return fmt.Errorf("received an unexpected ack: %s", string(pos.Original))
 	}
 	// check that no acks were skipped
 	for _, p := range am.expected {
@@ -159,7 +159,7 @@ func (am *AckManager) validateAck(pos Position) error {
 			break
 		}
 		if !am.received[string(p)] {
-			return fmt.Errorf("acks recieved out of order, skipped ack: %s", string(p))
+			return fmt.Errorf("acks received out of order, skipped ack: %s", string(p))
 		}
 	}
 	// to handle the uint32 overflow case, if the last index we received is in the interval [MaxUint32-100, mMxUint32]
@@ -169,7 +169,7 @@ func (am *AckManager) validateAck(pos Position) error {
 	}
 	// check that index is increasing
 	if pos.Index < am.lastIndex {
-		return fmt.Errorf("recieved an ack out of order, received: %d, last recieved index: %d", pos.Index, am.lastIndex)
+		return fmt.Errorf("received an ack out of order, received: %d, last received index: %d", pos.Index, am.lastIndex)
 	}
 	return nil
 }

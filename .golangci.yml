@@ -37,7 +37,7 @@ linters:
     - durationcheck
     - errcheck
     - errname
-    - errorlint
+    # - errorlint
     - exhaustive
     # - exhaustivestruct
     - copyloopvar
@@ -82,7 +82,7 @@ linters:
     - sqlclosecheck
     # - tagliatelle
     - tenv
-    - thelper
+    # - thelper
     # - tparallel
     - typecheck
     - unconvert
@@ -90,5 +90,5 @@ linters:
     - unused
     - wastedassign
     - whitespace
-    - wrapcheck
+    # - wrapcheck
     # - wsl

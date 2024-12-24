@@ -23,7 +23,7 @@ import (
 )
 
 func TestPosition_ToSDKPosition(t *testing.T) {
-	var positionTests = []struct {
+	positionTests := []struct {
 		name    string
 		wantErr bool
 		in      Position

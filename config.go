@@ -26,7 +26,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-// Config has the generic parameters needed for a gRPC client
+// Config has the generic parameters needed for a gRPC client.
 type Config struct {
 	// url to gRPC server
 	URL string `json:"url" validate:"required"`
@@ -52,7 +52,7 @@ type MTLSConfig struct {
 }
 
 // ParseMTLSFiles parses and validates mTLS params values, returns the parsed client certificate, and CA certificate pool,
-// and an error if the parsing fails
+// and an error if the parsing fails.
 func (mc *MTLSConfig) ParseMTLSFiles() (tls.Certificate, *x509.CertPool, error) {
 	err := mc.validateRequiredMTLSParams()
 	if err != nil {

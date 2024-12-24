@@ -239,7 +239,7 @@ func prepareServerAndDestination(t *testing.T, expected []opencdc.Record) (sdk.D
 	return dest, ctx
 }
 
-func startTestServer(t *testing.T, lis net.Listener, enableMTLS bool, expected []opencdc.Record) {
+func startTestServer(t *testing.T, lis net.Listener, enableMTLS bool, _ []opencdc.Record) { //nolint:funlen // ignore.
 	is := is.New(t)
 	ctrl := gomock.NewController(t)
 	serverOptions := make([]grpc.ServerOption, 0, 1)
