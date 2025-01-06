@@ -8,7 +8,7 @@ require (
 	github.com/conduitio/bwlimit/bwgrpc v0.1.0
 	github.com/conduitio/conduit-connector-protocol v0.5.0
 	github.com/conduitio/conduit-connector-sdk v0.8.0
-	github.com/golangci/golangci-lint v1.63.3
+	github.com/golangci/golangci-lint v1.63.4
 	github.com/matryer/is v1.4.1
 	go.uber.org/mock v0.4.0
 	go.uber.org/multierr v1.11.0
