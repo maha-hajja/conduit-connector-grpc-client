@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	opencdcv1 "github.com/conduitio/conduit-connector-protocol/proto/opencdc/v1"
+	opencdcv1 "github.com/conduitio/conduit-commons/proto/opencdc/v1"
 	gomock "go.uber.org/mock/gomock"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
@@ -23,6 +23,7 @@ import (
 type MockSourceServiceClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockSourceServiceClientMockRecorder
+	isgomock struct{}
 }
 
 // MockSourceServiceClientMockRecorder is the mock recorder for MockSourceServiceClient.
@@ -66,6 +67,7 @@ func (mr *MockSourceServiceClientMockRecorder) Stream(ctx any, opts ...any) *gom
 type MockSourceService_StreamClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockSourceService_StreamClientMockRecorder
+	isgomock struct{}
 }
 
 // MockSourceService_StreamClientMockRecorder is the mock recorder for MockSourceService_StreamClient.
@@ -203,6 +205,7 @@ func (mr *MockSourceService_StreamClientMockRecorder) Trailer() *gomock.Call {
 type MockSourceServiceServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockSourceServiceServerMockRecorder
+	isgomock struct{}
 }
 
 // MockSourceServiceServerMockRecorder is the mock recorder for MockSourceServiceServer.
@@ -252,6 +255,7 @@ func (mr *MockSourceServiceServerMockRecorder) mustEmbedUnimplementedSourceServi
 type MockUnsafeSourceServiceServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockUnsafeSourceServiceServerMockRecorder
+	isgomock struct{}
 }
 
 // MockUnsafeSourceServiceServerMockRecorder is the mock recorder for MockUnsafeSourceServiceServer.
@@ -287,6 +291,7 @@ func (mr *MockUnsafeSourceServiceServerMockRecorder) mustEmbedUnimplementedSourc
 type MockSourceService_StreamServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockSourceService_StreamServerMockRecorder
+	isgomock struct{}
 }
 
 // MockSourceService_StreamServerMockRecorder is the mock recorder for MockSourceService_StreamServer.

@@ -29,6 +29,7 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-grpc-client/fromproto"
 	pb "github.com/conduitio-labs/conduit-connector-grpc-client/proto/v1"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 	"go.uber.org/mock/gomock"
@@ -37,23 +38,23 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-var records = []sdk.Record{
+var records = []opencdc.Record{
 	{
-		Position:  sdk.Position("foo"),
-		Operation: sdk.OperationSnapshot,
-		Key:       sdk.StructuredData{"id1": "6"},
-		Payload: sdk.Change{
-			After: sdk.StructuredData{
+		Position:  opencdc.Position("foo"),
+		Operation: opencdc.OperationSnapshot,
+		Key:       opencdc.StructuredData{"id1": "6"},
+		Payload: opencdc.Change{
+			After: opencdc.StructuredData{
 				"foo": "bar",
 			},
 		},
 	},
 	{
-		Position:  sdk.Position("foobar"),
-		Operation: sdk.OperationSnapshot,
-		Key:       sdk.RawData("bar"),
-		Payload: sdk.Change{
-			After: sdk.RawData("baz"),
+		Position:  opencdc.Position("foobar"),
+		Operation: opencdc.OperationSnapshot,
+		Key:       opencdc.RawData("bar"),
+		Payload: opencdc.Change{
+			After: opencdc.RawData("baz"),
 		},
 	},
 }
@@ -141,8 +142,8 @@ func TestBackoffRetry_MaxDowntime(t *testing.T) {
 	// maxDowntime is 0.5 second, sleep for 1
 	time.Sleep(1 * time.Second)
 	// attempt to write a record, to get the connection error
-	n, err := dest.Write(ctx, []sdk.Record{
-		{Position: sdk.Position("foo")},
+	n, err := dest.Write(ctx, []opencdc.Record{
+		{Position: opencdc.Position("foo")},
 	})
 	is.True(errors.Is(err, errMaxDowntimeReached))
 	is.Equal(n, 0)
@@ -202,7 +203,7 @@ func TestBackoffRetry_Reconnect(t *testing.T) {
 	is.Equal(n, 2)
 }
 
-func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Destination, context.Context) {
+func prepareServerAndDestination(t *testing.T, expected []opencdc.Record) (sdk.Destination, context.Context) {
 	is := is.New(t)
 	// use in-memory connection
 	lis := bufconn.Listen(1024 * 1024)
@@ -238,7 +239,7 @@ func prepareServerAndDestination(t *testing.T, expected []sdk.Record) (sdk.Desti
 	return dest, ctx
 }
 
-func startTestServer(t *testing.T, lis net.Listener, enableMTLS bool, expected []sdk.Record) {
+func startTestServer(t *testing.T, lis net.Listener, enableMTLS bool, _ []opencdc.Record) {
 	is := is.New(t)
 	ctrl := gomock.NewController(t)
 	serverOptions := make([]grpc.ServerOption, 0, 1)
@@ -276,7 +277,7 @@ func startTestServer(t *testing.T, lis net.Listener, enableMTLS bool, expected [
 					if err != nil {
 						return err
 					}
-					// convert the proto record to sdk.Record to compare with expected records
+					// convert the proto record to opencdc.Record to compare with expected records
 					_, err = fromproto.Record(rec)
 					if err != nil {
 						return err

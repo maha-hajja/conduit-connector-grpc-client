@@ -22,11 +22,11 @@ import (
 	"os"
 	"time"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/config"
 	"go.uber.org/multierr"
 )
 
-// Config has the generic parameters needed for a gRPC client
+// Config has the generic parameters needed for a gRPC client.
 type Config struct {
 	// url to gRPC server
 	URL string `json:"url" validate:"required"`
@@ -52,7 +52,7 @@ type MTLSConfig struct {
 }
 
 // ParseMTLSFiles parses and validates mTLS params values, returns the parsed client certificate, and CA certificate pool,
-// and an error if the parsing fails
+// and an error if the parsing fails.
 func (mc *MTLSConfig) ParseMTLSFiles() (tls.Certificate, *x509.CertPool, error) {
 	err := mc.validateRequiredMTLSParams()
 	if err != nil {
@@ -78,13 +78,13 @@ func (mc *MTLSConfig) ParseMTLSFiles() (tls.Certificate, *x509.CertPool, error) 
 func (mc *MTLSConfig) validateRequiredMTLSParams() error {
 	var multiErr error
 	if mc.CACertPath == "" {
-		multiErr = multierr.Append(multiErr, fmt.Errorf("error validating \"mtls.ca.certPath\": %w", sdk.ErrRequiredParameterMissing))
+		multiErr = multierr.Append(multiErr, fmt.Errorf("error validating \"mtls.ca.certPath\": %w", config.ErrRequiredParameterMissing))
 	}
 	if mc.ClientCertPath == "" {
-		multiErr = multierr.Append(multiErr, fmt.Errorf("error validating \"mtls.client.certPath\": %w", sdk.ErrRequiredParameterMissing))
+		multiErr = multierr.Append(multiErr, fmt.Errorf("error validating \"mtls.client.certPath\": %w", config.ErrRequiredParameterMissing))
 	}
 	if mc.ClientKeyPath == "" {
-		multiErr = multierr.Append(multiErr, fmt.Errorf("error validating \"mtls.client.keyPath\": %w", sdk.ErrRequiredParameterMissing))
+		multiErr = multierr.Append(multiErr, fmt.Errorf("error validating \"mtls.client.keyPath\": %w", config.ErrRequiredParameterMissing))
 	}
 	return multiErr
 }
