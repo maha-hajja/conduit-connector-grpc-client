@@ -10,7 +10,7 @@ require (
 	github.com/conduitio/bwlimit/bwgrpc v0.1.0
 	github.com/conduitio/conduit-commons v0.5.1
 	github.com/conduitio/conduit-connector-sdk v0.12.0
-	github.com/golangci/golangci-lint v1.64.2
+	github.com/golangci/golangci-lint v1.64.4
 	github.com/matryer/is v1.4.1
 	go.uber.org/mock v0.5.0
 	go.uber.org/multierr v1.11.0
@@ -108,7 +108,7 @@ require (
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/ghostiam/protogetter v0.3.9 // indirect
 	github.com/go-chi/chi/v5 v5.2.0 // indirect
-	github.com/go-critic/go-critic v0.11.5 // indirect
+	github.com/go-critic/go-critic v0.12.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
@@ -184,7 +184,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
-	github.com/mgechev/revive v1.6.0 // indirect
+	github.com/mgechev/revive v1.6.1 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -206,7 +206,7 @@ require (
 	github.com/nakabonne/nestif v0.3.1 // indirect
 	github.com/nishanths/exhaustive v0.12.0 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
-	github.com/nunnatsa/ginkgolinter v0.18.4 // indirect
+	github.com/nunnatsa/ginkgolinter v0.19.0 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/onsi/ginkgo/v2 v2.22.2 // indirect
@@ -301,7 +301,7 @@ require (
 	go.uber.org/zap/exp v0.3.0 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20241108190413-2d47ceb2692f // indirect
+	golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
